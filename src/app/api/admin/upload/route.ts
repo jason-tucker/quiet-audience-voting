@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const lenHeader = request.headers.get("content-length");
     if (lenHeader && Number(lenHeader) > MAX_FILE_BYTES) {
       return NextResponse.json(
-        { error: `File too large (max ${MAX_FILE_BYTES / 1024 / 1024}MB)` },
+        { error: `File too large (max ${(MAX_FILE_BYTES / 1024 / 1024 / 1024).toFixed(0)}GB)` },
         { status: 413 },
       );
     }

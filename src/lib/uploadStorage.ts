@@ -2,7 +2,7 @@ import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
 
-const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_FILE_BYTES = 1024 * 1024 * 1024; // 1 GB
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 const UPLOAD_DIR =
@@ -18,7 +18,7 @@ export async function saveUploadedBuffer(
     );
   }
   if (buffer.length > MAX_FILE_BYTES) {
-    throw new Error(`File too large (max ${MAX_FILE_BYTES / 1024 / 1024}MB)`);
+    throw new Error(`File too large (max ${formatBytes(MAX_FILE_BYTES)})`);
   }
 
   await mkdir(UPLOAD_DIR, { recursive: true });
@@ -30,6 +30,12 @@ export async function saveUploadedBuffer(
   await writeFile(fullPath, buffer);
 
   return { url: `/uploads/${filename}` };
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024 / 1024).toFixed(0)}GB`;
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(0)}MB`;
+  return `${bytes}B`;
 }
 
 function extensionForMime(mime: string): string {
