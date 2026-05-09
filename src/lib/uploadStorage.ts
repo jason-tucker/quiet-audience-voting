@@ -2,7 +2,13 @@ import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
 
-const MAX_FILE_BYTES = 1024 * 1024 * 1024; // 1 GB
+// Capped at the Cloudflare Tunnel POST body limit so the limit our app
+// rejects at matches what Cloudflare would silently reject in production.
+//   Free / Pro:   100 MB
+//   Business:     200 MB
+//   Enterprise:   500 MB (configurable via support)
+// If you upgrade your Cloudflare plan, bump this to match.
+const MAX_FILE_BYTES = 100 * 1024 * 1024;
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 const UPLOAD_DIR =
