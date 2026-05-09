@@ -24,9 +24,16 @@ export function FilmForm({ isOpen, onClose, onSaved, film }: Props) {
     setUploading(true);
     setError(null);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+      // Send the file as the raw request body. The server handles multipart-free
+      // uploads at /api/admin/upload — see route.ts for the rationale.
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+          "X-File-Name": encodeURIComponent(file.name),
+        },
+        body: file,
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Upload failed");
       setPosterUrl(data.url);
