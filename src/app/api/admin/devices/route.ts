@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { matchesAnyTrustedProfile } from "@/lib/trustedDevices";
 import type { DeviceSummary } from "@/types";
 
 export async function GET() {
-  const votes = await prisma.vote.findMany({
-    orderBy: { timestamp: "asc" },
-    include: { film: { select: { name: true } } },
-  });
+  const [votes, profiles] = await Promise.all([
+    prisma.vote.findMany({
+      orderBy: { timestamp: "asc" },
+      include: { film: { select: { name: true } } },
+    }),
+    prisma.trustedDeviceProfile.findMany(),
+  ]);
 
   const byDevice = new Map<string, DeviceSummary>();
 
@@ -16,7 +20,6 @@ export async function GET() {
       existing.voteCount++;
       existing.lastSeen = v.timestamp.toISOString();
       if (!existing.films.includes(v.film.name)) existing.films.push(v.film.name);
-      // Keep most recent device info
       existing.ipAddress = v.ipAddress;
       existing.userAgent = v.userAgent;
       existing.platform = v.platform;
@@ -32,10 +35,26 @@ export async function GET() {
         userAgent: v.userAgent,
         platform: v.platform,
         rawDeviceJson: v.rawDeviceJson,
+        trusted: false,
       });
     }
   }
 
+  // Compute trust status for each device using the latest known device fields
+  for (const summary of byDevice.values()) {
+    const latestVote = votes.find((v) => v.deviceFingerprint === summary.fingerprint);
+    summary.trusted = matchesAnyTrustedProfile(
+      {
+        fingerprint: summary.fingerprint,
+        userAgent: summary.userAgent,
+        platform: summary.platform,
+        screenWidth: latestVote?.screenWidth ?? null,
+        screenHeight: latestVote?.screenHeight ?? null,
+      },
+      profiles,
+    );
+  }
+
   const devices = Array.from(byDevice.values()).sort((a, b) => b.voteCount - a.voteCount);
-  return NextResponse.json({ devices });
+  return NextResponse.json({ devices, hasTrustedProfiles: profiles.length > 0 });
 }

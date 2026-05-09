@@ -54,7 +54,6 @@ export function FilmTable() {
                 <th className="p-3">Poster</th>
                 <th className="p-3">Name</th>
                 <th className="p-3">School</th>
-                <th className="p-3">Order</th>
                 <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -70,7 +69,6 @@ export function FilmTable() {
                   </td>
                   <td className="p-3 font-medium">{film.name}</td>
                   <td className="p-3 text-white/70">{film.school}</td>
-                  <td className="p-3 text-white/70">{film.displayOrder}</td>
                   <td className="p-3">
                     <div className="flex justify-end gap-2">
                       <Button size="sm" variant="secondary" onClick={() => setEditing(film)}>

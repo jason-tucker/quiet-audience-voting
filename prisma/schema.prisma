@@ -11,15 +11,12 @@ datasource db {
 }
 
 model Film {
-  id           String   @id @default(cuid())
-  name         String
-  school       String
-  posterUrl    String
-  displayOrder Int      @default(0)
-  createdAt    DateTime @default(now())
-  votes        Vote[]
-
-  @@index([displayOrder])
+  id        String   @id @default(cuid())
+  name      String
+  school    String
+  posterUrl String
+  createdAt DateTime @default(now())
+  votes     Vote[]
 }
 
 model Vote {
@@ -54,4 +51,31 @@ model Vote {
 model Setting {
   key   String @id
   value String
+}
+
+// A reference profile for a device the admin trusts (e.g. an iPad they
+// physically set up at a venue). Other devices casting votes are compared
+// to these profiles; non-matching devices are flagged in the admin UI.
+model TrustedDeviceProfile {
+  id           String   @id @default(cuid())
+  label        String
+  fingerprint  String?
+  userAgent    String
+  platform     String?
+  screenWidth  Int?
+  screenHeight Int?
+  createdAt    DateTime @default(now())
+}
+
+// Snapshot of a completed voting session. Captured when an admin "resets" the
+// votes — the live vote table is wiped, but the totals are preserved here.
+// Only the last 5 snapshots are retained; older ones are pruned automatically.
+model VoteSnapshot {
+  id            String   @id @default(cuid())
+  label         String
+  createdAt     DateTime @default(now())
+  totalVotes    Int
+  uniqueDevices Int
+  // JSON-serialized array of { filmId, filmName, school, posterUrl, count, percentage }
+  filmResults   String
 }

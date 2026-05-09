@@ -3,11 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { name, school, posterUrl, displayOrder } = body as {
+  const { name, school, posterUrl } = body as {
     name: string;
     school: string;
     posterUrl: string;
-    displayOrder?: number;
   };
 
   if (!name || !school || !posterUrl) {
@@ -15,12 +14,7 @@ export async function POST(request: Request) {
   }
 
   const film = await prisma.film.create({
-    data: {
-      name,
-      school,
-      posterUrl,
-      displayOrder: displayOrder ?? 0,
-    },
+    data: { name, school, posterUrl },
   });
   return NextResponse.json({ film });
 }

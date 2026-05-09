@@ -3,7 +3,6 @@ export interface Film {
   name: string;
   school: string;
   posterUrl: string;
-  displayOrder: number;
   createdAt?: string;
 }
 
@@ -69,6 +68,27 @@ export interface DeviceSummary {
   userAgent: string;
   platform: string | null;
   rawDeviceJson: string;
+  trusted: boolean;
+}
+
+export interface TrustedDeviceProfile {
+  id: string;
+  label: string;
+  fingerprint: string | null;
+  userAgent: string;
+  platform: string | null;
+  screenWidth: number | null;
+  screenHeight: number | null;
+  createdAt: string;
+}
+
+export interface VoteSnapshotSummary {
+  id: string;
+  label: string;
+  createdAt: string;
+  totalVotes: number;
+  uniqueDevices: number;
+  filmResults: VoteResult[];
 }
 
 export interface AppStatus {

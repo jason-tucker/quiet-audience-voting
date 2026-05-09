@@ -27,7 +27,7 @@ export function broadcastUpdate(payload: { films: VoteResult[]; total: number })
 
 export async function getCurrentResults(): Promise<{ films: VoteResult[]; total: number }> {
   const films = await prisma.film.findMany({
-    orderBy: { displayOrder: "asc" },
+    orderBy: { createdAt: "asc" },
     include: { _count: { select: { votes: true } } },
   });
 
