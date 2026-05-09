@@ -1,0 +1,57 @@
+// Quiet Audience Voting — database schema
+// SQLite chosen for single-file portability inside a Docker volume.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Film {
+  id           String   @id @default(cuid())
+  name         String
+  school       String
+  posterUrl    String
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  votes        Vote[]
+
+  @@index([displayOrder])
+}
+
+model Vote {
+  id                  String   @id @default(cuid())
+  filmId              String
+  film                Film     @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  timestamp           DateTime @default(now())
+  deviceFingerprint   String
+  ipAddress           String
+  userAgent           String
+  screenWidth         Int?
+  screenHeight        Int?
+  timezone            String?
+  language            String?
+  platform            String?
+  colorDepth          Int?
+  touchSupport        Boolean?
+  pixelRatio          Float?
+  viewportWidth       Int?
+  viewportHeight      Int?
+  cookieEnabled       Boolean?
+  doNotTrack          String?
+  hardwareConcurrency Int?
+  deviceMemory        Float?
+  rawDeviceJson       String
+
+  @@index([filmId])
+  @@index([timestamp])
+  @@index([deviceFingerprint])
+}
+
+model Setting {
+  key   String @id
+  value String
+}

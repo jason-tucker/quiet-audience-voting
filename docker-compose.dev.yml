@@ -1,0 +1,27 @@
+# Dev/staging compose file — used on the Unraid Docker host.
+# Pulls the :dev image from GHCR (auto-updated by Watchtower).
+
+version: "3.8"
+
+services:
+  qav-dev:
+    image: ghcr.io/jason-tucker/quiet-audience-voting:dev
+    container_name: qav-dev
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    volumes:
+      - qav_dev_data:/app/data
+      - qav_dev_uploads:/app/uploads
+    environment:
+      DATABASE_URL: "file:/app/data/dev.db"
+      JWT_SECRET: "${JWT_SECRET}"
+      INITIAL_ADMIN_PASSWORD: "${INITIAL_ADMIN_PASSWORD}"
+      NEXT_PUBLIC_APP_URL: "https://dev.qcffpoll.com"
+      NODE_ENV: production
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+volumes:
+  qav_dev_data:
+  qav_dev_uploads:

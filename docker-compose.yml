@@ -1,0 +1,40 @@
+# Production compose file — used on the Ubuntu VPS.
+# Pulls the :latest image from GHCR (auto-updated by Watchtower).
+
+version: "3.8"
+
+services:
+  qav:
+    image: ghcr.io/jason-tucker/quiet-audience-voting:latest
+    container_name: qav
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - qav_data:/app/data
+      - qav_uploads:/app/uploads
+    environment:
+      DATABASE_URL: "file:/app/data/prod.db"
+      JWT_SECRET: "${JWT_SECRET}"
+      INITIAL_ADMIN_PASSWORD: "${INITIAL_ADMIN_PASSWORD}"
+      NEXT_PUBLIC_APP_URL: "https://qcffpoll.com"
+      NODE_ENV: production
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: qav-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_LABEL_ENABLE: "true"
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_POLL_INTERVAL: "300"
+      REPO_USER: "${GHCR_USER}"
+      REPO_PASS: "${GHCR_TOKEN}"
+
+volumes:
+  qav_data:
+  qav_uploads:
