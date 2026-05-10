@@ -263,21 +263,33 @@ export function VoteTimeline() {
                   wrapperStyle={{ fontSize: 11, color: "#a1a1aa" }}
                 />
               )}
-              {films.map((f) => {
-                const color = colorForFilm(f.id);
-                const dataKey = mode === "cumulative" ? `${f.id}__total` : f.id;
-                return (
-                  <Area
-                    key={f.id}
-                    type="monotone"
-                    dataKey={dataKey}
-                    stackId="1"
-                    stroke={color}
-                    fill={color}
-                    fillOpacity={0.7}
-                  />
-                );
-              })}
+              {(() => {
+                // In cumulative mode, sort films by final running total
+                // ascending so the highest-vote film is rendered LAST,
+                // landing on top of the stack visually.
+                const ordered =
+                  mode === "cumulative" && data.length > 0
+                    ? [...films].sort((a, b) => {
+                        const last = data[data.length - 1] as Record<string, number>;
+                        return (last[`${a.id}__total`] ?? 0) - (last[`${b.id}__total`] ?? 0);
+                      })
+                    : films;
+                return ordered.map((f) => {
+                  const color = colorForFilm(f.id);
+                  const dataKey = mode === "cumulative" ? `${f.id}__total` : f.id;
+                  return (
+                    <Area
+                      key={f.id}
+                      type="monotone"
+                      dataKey={dataKey}
+                      stackId="1"
+                      stroke={color}
+                      fill={color}
+                      fillOpacity={0.7}
+                    />
+                  );
+                });
+              })()}
             </AreaChart>
           </ResponsiveContainer>
         </div>

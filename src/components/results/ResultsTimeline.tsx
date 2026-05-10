@@ -164,22 +164,36 @@ export function ResultsTimeline({
                   return [`${value} (total ${total})`, film?.filmName ?? filmId];
                 }}
               />
-              {films.map((f) => {
-                const color = colorForFilm(f.filmId);
-                const dataKey = mode === "cumulative" ? `${f.filmId}__total` : f.filmId;
-                return (
-                  <Area
-                    key={f.filmId}
-                    type="monotone"
-                    dataKey={dataKey}
-                    stackId="1"
-                    stroke={color}
-                    fill={color}
-                    fillOpacity={0.65}
-                    isAnimationActive={false}
-                  />
-                );
-              })}
+              {(() => {
+                // In cumulative mode, render highest-vote films last so
+                // they sit on top of the stack.
+                const ordered =
+                  mode === "cumulative" && data.length > 0
+                    ? [...films].sort((a, b) => {
+                        const last = data[data.length - 1] as Record<string, number>;
+                        return (
+                          (last[`${a.filmId}__total`] ?? 0) -
+                          (last[`${b.filmId}__total`] ?? 0)
+                        );
+                      })
+                    : films;
+                return ordered.map((f) => {
+                  const color = colorForFilm(f.filmId);
+                  const dataKey = mode === "cumulative" ? `${f.filmId}__total` : f.filmId;
+                  return (
+                    <Area
+                      key={f.filmId}
+                      type="monotone"
+                      dataKey={dataKey}
+                      stackId="1"
+                      stroke={color}
+                      fill={color}
+                      fillOpacity={0.65}
+                      isAnimationActive={false}
+                    />
+                  );
+                });
+              })()}
             </AreaChart>
           </ResponsiveContainer>
         </div>
