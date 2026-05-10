@@ -17,14 +17,14 @@ interface Bucket {
   count: number;
 }
 
-const BUCKET_MINUTES = 5;
+const BUCKET_SECONDS = 30;
 
 function bucketize(votes: AuditVote[]): Bucket[] {
   if (votes.length === 0) return [];
   const sorted = [...votes].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
   const first = new Date(sorted[0].timestamp).getTime();
   const last = new Date(sorted[sorted.length - 1].timestamp).getTime();
-  const bucketMs = BUCKET_MINUTES * 60 * 1000;
+  const bucketMs = BUCKET_SECONDS * 1000;
   const buckets: Bucket[] = [];
   for (let t = first; t <= last + bucketMs; t += bucketMs) {
     const end = t + bucketMs;
@@ -34,7 +34,11 @@ function bucketize(votes: AuditVote[]): Bucket[] {
     }).length;
     const date = new Date(t);
     buckets.push({
-      label: date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      label: date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }),
       count,
     });
   }
@@ -75,7 +79,7 @@ export function VoteTimeline() {
 
   return (
     <div className="rounded-xl bg-zinc-900 p-6 ring-1 ring-zinc-800">
-      <h3 className="mb-4 text-lg font-semibold text-white">Vote Timeline (5-min buckets)</h3>
+      <h3 className="mb-4 text-lg font-semibold text-white">Vote Timeline (30-second buckets)</h3>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data}>
