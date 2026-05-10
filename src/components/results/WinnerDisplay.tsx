@@ -7,7 +7,7 @@ export function WinnerDisplay({ result }: { result: VoteResult }) {
         <img
           src={result.posterUrl}
           alt={result.filmName}
-          className="h-40 w-28 rounded-lg object-cover shadow-lg sm:h-48 sm:w-32"
+          className="h-40 w-28 rounded-lg object-contain bg-zinc-800 shadow-lg sm:h-48 sm:w-32"
         />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold uppercase tracking-wider text-yellow-400">

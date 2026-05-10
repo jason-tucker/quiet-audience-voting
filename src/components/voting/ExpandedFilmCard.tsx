@@ -21,13 +21,13 @@ export function ExpandedFilmCard({ film, onConfirm, onCancel, submitting }: Prop
           aria-label="Confirm vote by tapping poster"
           onClick={onConfirm}
           disabled={submitting}
-          className="relative w-full overflow-hidden rounded-2xl ring-4 ring-blue-500 shadow-2xl transition-transform active:scale-[0.99] disabled:opacity-50"
-          style={{ maxHeight: "65vh", aspectRatio: "2 / 3" }}
+          className="relative flex w-full items-center justify-center overflow-hidden rounded-2xl ring-4 ring-blue-500 shadow-2xl transition-transform active:scale-[0.99] disabled:opacity-50"
+          style={{ maxHeight: "65vh" }}
         >
           <img
             src={film.posterUrl}
             alt={film.name}
-            className="h-full w-full object-cover"
+            className="max-h-[65vh] w-auto max-w-full object-contain"
             draggable={false}
           />
         </button>

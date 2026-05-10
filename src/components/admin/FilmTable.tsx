@@ -64,7 +64,7 @@ export function FilmTable() {
                     <img
                       src={film.posterUrl}
                       alt={film.name}
-                      className="h-14 w-10 rounded object-cover"
+                      className="h-14 w-10 rounded object-contain bg-zinc-800"
                     />
                   </td>
                   <td className="p-3 font-medium">{film.name}</td>

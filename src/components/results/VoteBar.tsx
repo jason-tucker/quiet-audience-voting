@@ -8,7 +8,7 @@ export function VoteBar({ result, rank }: { result: VoteResult; rank: number }) 
         <img
           src={result.posterUrl}
           alt={result.filmName}
-          className="h-20 w-14 rounded object-cover"
+          className="h-20 w-14 rounded object-contain bg-zinc-800"
         />
         <div className="min-w-0 flex-1">
           <h3 className="truncate font-semibold text-white">{result.filmName}</h3>
