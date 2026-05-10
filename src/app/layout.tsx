@@ -16,8 +16,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    // suppressHydrationWarning on the root silences hydration mismatches
+    // caused by browser extensions (Dark Reader, etc.) that mutate <html>
+    // attributes before React hydrates.
+    <html lang="en" suppressHydrationWarning>
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }
