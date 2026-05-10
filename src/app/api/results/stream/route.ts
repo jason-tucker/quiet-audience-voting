@@ -1,41 +1,31 @@
-import { addClient, removeClient, getCurrentResults } from "@/lib/sse";
+import { addClient, removeClient, getCurrentResults, TooManySseClients } from "@/lib/sse";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-const HEARTBEAT_MS = 3000;
 
 export async function GET() {
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      addClient(controller);
+      try {
+        addClient(controller);
+      } catch (err) {
+        if (err instanceof TooManySseClients) {
+          controller.error(err);
+          return;
+        }
+        throw err;
+      }
       try {
         const initial = await getCurrentResults();
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(initial)}\n\n`));
       } catch {
-        // ignore
+        // The shared heartbeat will retry; no point failing the stream.
       }
-
-      // Heartbeat as a real `data:` event so the client's onmessage handler
-      // fires and the watchdog stays armed. Plain SSE comments don't trigger
-      // onmessage, which made the client think the connection was stale.
-      const interval = setInterval(async () => {
-        try {
-          const snapshot = await getCurrentResults();
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(snapshot)}\n\n`));
-        } catch {
-          clearInterval(interval);
-        }
-      }, HEARTBEAT_MS);
-
-      (controller as unknown as { _interval?: NodeJS.Timeout })._interval = interval;
     },
     cancel(controller) {
       removeClient(controller);
-      const interval = (controller as unknown as { _interval?: NodeJS.Timeout })._interval;
-      if (interval) clearInterval(interval);
     },
   });
 

@@ -1,11 +1,19 @@
 import type { NextRequest } from "next/server";
 import type { DeviceInfo } from "@/types";
 
+// x-forwarded-for / x-real-ip are trivially spoofable by any client unless
+// the app sits behind a proxy that overwrites them. Only honor them when
+// the operator has explicitly opted in via TRUSTED_PROXY=true (set this
+// in production behind Cloudflare Tunnel / nginx / etc.). Otherwise we
+// have no reliable client IP at the Next.js layer and return "unknown"
+// rather than letting an attacker forge audit-log entries.
 export function getClientIp(request: NextRequest): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
-  const realIp = request.headers.get("x-real-ip");
-  if (realIp) return realIp.trim();
+  if (process.env.TRUSTED_PROXY === "true") {
+    const forwarded = request.headers.get("x-forwarded-for");
+    if (forwarded) return forwarded.split(",")[0].trim();
+    const realIp = request.headers.get("x-real-ip");
+    if (realIp) return realIp.trim();
+  }
   return "unknown";
 }
 
