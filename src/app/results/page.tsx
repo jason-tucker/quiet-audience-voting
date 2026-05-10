@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { VoteResult, AppStatus } from "@/types";
+import type { VoteResult, VoteEvent, AppStatus } from "@/types";
 import { ResultsBoard } from "@/components/results/ResultsBoard";
 
 interface SsePayload {
@@ -9,6 +9,7 @@ interface SsePayload {
   total: number;
   votingOpenedAt: string | null;
   serverTime: string;
+  lastVote?: VoteEvent;
 }
 
 const STATUS_POLL_MS = 5000;
@@ -23,6 +24,22 @@ export default function ResultsPage() {
   const [status, setStatus] = useState<"live" | "stale" | "disconnected">("disconnected");
   const [lastUpdateMs, setLastUpdateMs] = useState<number | null>(null);
   const [votingOpen, setVotingOpen] = useState<boolean | null>(null);
+  const [voteEvents, setVoteEvents] = useState<VoteEvent[]>([]);
+
+  // Hydrate the timeline events list once on mount; SSE-pushed lastVote
+  // events keep it current after that.
+  useEffect(() => {
+    let mounted = true;
+    fetch("/api/results/votes")
+      .then((r) => r.json() as Promise<{ events: VoteEvent[] }>)
+      .then((d) => {
+        if (mounted) setVoteEvents(d.events);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const lastUpdateAt = useRef<number | null>(null);
   const reconnectAttempt = useRef(0);
@@ -93,6 +110,14 @@ export default function ResultsPage() {
         setFilms(data.films);
         setTotal(data.total);
         setVotingOpenedAt(data.votingOpenedAt);
+        if (data.lastVote) {
+          // Append to the timeline event list, deduping by id in case the
+          // server resends the same vote in a heartbeat snapshot.
+          setVoteEvents((prev) => {
+            if (prev.some((e) => e.id === data.lastVote!.id)) return prev;
+            return [...prev, data.lastVote!];
+          });
+        }
         lastUpdateAt.current = Date.now();
         setLastUpdateMs(0);
         setStatus("live");
@@ -122,6 +147,7 @@ export default function ResultsPage() {
       status={status}
       lastUpdateMs={lastUpdateMs}
       votingOpen={votingOpen}
+      voteEvents={voteEvents}
     />
   );
 }

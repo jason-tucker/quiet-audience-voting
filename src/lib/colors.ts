@@ -39,3 +39,47 @@ export function colorWithAlpha(color: string, alpha: number): string {
   const base = color.length === 9 ? color.slice(0, 7) : color;
   return `${base}${aHex}`;
 }
+
+function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  const sN = s / 100;
+  const lN = l / 100;
+  const a = sN * Math.min(lN, 1 - lN);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    return lN - a * Math.max(-1, Math.min(k - 3, Math.min(9 - k, 1)));
+  };
+  return [f(0), f(8), f(4)];
+}
+
+function srgbLuminance([r, g, b]: [number, number, number]): number {
+  const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+/**
+ * Returns "#000" or "#fff" — whichever gives better contrast against the
+ * supplied color. Uses real perceived luminance (HSL → sRGB → relative
+ * luminance) so yellow/green correctly pick black, blue/red correctly
+ * pick white.
+ */
+export function contrastingTextColor(color: string): string {
+  let rgb: [number, number, number] | null = null;
+
+  const hsl = color.match(/hsla?\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%/);
+  if (hsl) {
+    rgb = hslToRgb(Number(hsl[1]), Number(hsl[2]), Number(hsl[3]));
+  } else {
+    const hex = color.startsWith("#") ? color.slice(1, 7) : null;
+    if (hex && hex.length === 6) {
+      rgb = [
+        parseInt(hex.slice(0, 2), 16) / 255,
+        parseInt(hex.slice(2, 4), 16) / 255,
+        parseInt(hex.slice(4, 6), 16) / 255,
+      ];
+    }
+  }
+
+  if (!rgb) return "#ffffff";
+  const lum = srgbLuminance(rgb);
+  return lum > 0.45 ? "#000000" : "#ffffff";
+}

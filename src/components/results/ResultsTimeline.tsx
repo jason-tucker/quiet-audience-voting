@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -60,31 +60,13 @@ type Mode = "per-bucket" | "cumulative";
 export function ResultsTimeline({
   films,
   votingOpenedAt,
+  events,
 }: {
   films: VoteResult[];
   votingOpenedAt: string | null;
+  events: VoteEvent[];
 }) {
-  const [events, setEvents] = useState<VoteEvent[]>([]);
   const [mode, setMode] = useState<Mode>("per-bucket");
-
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      try {
-        const res = await fetch("/api/results/votes");
-        const data = await res.json();
-        if (mounted) setEvents(data.events);
-      } catch {
-        // ignore
-      }
-    };
-    load();
-    const id = setInterval(load, 2000);
-    return () => {
-      mounted = false;
-      clearInterval(id);
-    };
-  }, []);
 
   const data = useMemo(() => {
     if (!votingOpenedAt && events.length === 0) return [];
@@ -149,7 +131,7 @@ export function ResultsTimeline({
                   borderRadius: 8,
                 }}
                 labelStyle={{ color: "#a1a1aa" }}
-                itemStyle={{ color: "#fff" }}
+                itemSorter={(item) => -(Number(item.value) || 0)}
                 formatter={(
                   value: number,
                   name: string,

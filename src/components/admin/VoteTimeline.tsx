@@ -237,7 +237,7 @@ export function VoteTimeline() {
                   borderRadius: 8,
                 }}
                 labelStyle={{ color: "#a1a1aa" }}
-                itemStyle={{ color: "#fff" }}
+                itemSorter={(item) => -(Number(item.value) || 0)}
                 formatter={(
                   value: number,
                   name: string,

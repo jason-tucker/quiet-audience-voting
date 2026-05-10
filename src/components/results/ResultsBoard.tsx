@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { VoteResult } from "@/types";
+import type { VoteResult, VoteEvent } from "@/types";
 import { VoteBar } from "./VoteBar";
 import { WinnerDisplay } from "./WinnerDisplay";
 import { FilmTimelineModal } from "./FilmTimelineModal";
@@ -15,6 +15,7 @@ interface Props {
   status: "live" | "stale" | "disconnected";
   lastUpdateMs: number | null;
   votingOpen: boolean | null;
+  voteEvents: VoteEvent[];
 }
 
 function formatAge(ms: number | null): string {
@@ -34,6 +35,7 @@ export function ResultsBoard({
   status,
   lastUpdateMs,
   votingOpen,
+  voteEvents,
 }: Props) {
   const winner = films.find((f) => f.count > 0);
   const rest = winner ? films.filter((f) => f.filmId !== winner.filmId) : films;
@@ -91,7 +93,11 @@ export function ResultsBoard({
 
       {votingOpenedAt && films.length > 0 && (
         <section className="mb-6">
-          <ResultsTimeline films={films} votingOpenedAt={votingOpenedAt} />
+          <ResultsTimeline
+            films={films}
+            votingOpenedAt={votingOpenedAt}
+            events={voteEvents}
+          />
         </section>
       )}
 
@@ -121,6 +127,7 @@ export function ResultsBoard({
           film={selected}
           onClose={() => setSelected(null)}
           votingOpenedAt={votingOpenedAt}
+          events={voteEvents}
         />
       )}
     </div>

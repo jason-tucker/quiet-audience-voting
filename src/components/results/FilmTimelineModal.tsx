@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -12,11 +12,13 @@ import {
 } from "recharts";
 import type { VoteResult, VoteEvent } from "@/types";
 import { Modal } from "@/components/ui/Modal";
+import { colorForFilm } from "@/lib/colors";
 
 interface Props {
   film: VoteResult;
   onClose: () => void;
   votingOpenedAt: string | null;
+  events: VoteEvent[];
 }
 
 const BUCKET_SECONDS = 30;
@@ -56,30 +58,16 @@ function bucketize(events: VoteEvent[], startIso: string | null): Bucket[] {
   return buckets;
 }
 
-export function FilmTimelineModal({ film, onClose, votingOpenedAt }: Props) {
-  const [events, setEvents] = useState<VoteEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      try {
-        const res = await fetch(`/api/results/votes?filmId=${film.filmId}`);
-        const data = await res.json();
-        if (mounted) setEvents(data.events);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-    load();
-    const id = setInterval(load, 2000);
-    return () => {
-      mounted = false;
-      clearInterval(id);
-    };
-  }, [film.filmId]);
-
-  const data = bucketize(events, votingOpenedAt);
+export function FilmTimelineModal({ film, onClose, votingOpenedAt, events }: Props) {
+  const filmEvents = useMemo(
+    () => events.filter((e) => e.filmId === film.filmId),
+    [events, film.filmId],
+  );
+  const data = useMemo(
+    () => bucketize(filmEvents, votingOpenedAt),
+    [filmEvents, votingOpenedAt],
+  );
+  const filmColor = colorForFilm(film.filmId);
 
   return (
     <Modal isOpen={true} onClose={onClose} title={film.filmName} maxWidth="max-w-3xl">
@@ -101,18 +89,16 @@ export function FilmTimelineModal({ film, onClose, votingOpenedAt }: Props) {
           <h3 className="mb-3 text-sm font-semibold text-white/80">
             Vote timeline (30-second buckets)
           </h3>
-          {loading ? (
-            <p className="py-8 text-center text-white/50">Loading…</p>
-          ) : data.length === 0 ? (
+          {data.length === 0 ? (
             <p className="py-8 text-center text-white/50">No votes yet.</p>
           ) : (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={data}>
                   <defs>
-                    <linearGradient id="filmFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.7} />
-                      <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+                    <linearGradient id={`fill-${film.filmId}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={filmColor} stopOpacity={0.7} />
+                      <stop offset="100%" stopColor={filmColor} stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
@@ -129,8 +115,8 @@ export function FilmTimelineModal({ film, onClose, votingOpenedAt }: Props) {
                   <Area
                     type="monotone"
                     dataKey="count"
-                    stroke="#3b82f6"
-                    fill="url(#filmFill)"
+                    stroke={filmColor}
+                    fill={`url(#fill-${film.filmId})`}
                   />
                 </AreaChart>
               </ResponsiveContainer>
