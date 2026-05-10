@@ -1,30 +1,73 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Film } from "@/types";
 import { FilmCard } from "./FilmCard";
 
-function computeColumns(filmCount: number, viewportWidth: number, viewportHeight: number): number {
-  if (filmCount <= 0) return 1;
-  const isLandscape = viewportWidth >= viewportHeight;
-  // Posters are roughly 2:3 portrait. We want each cell roughly that aspect ratio
-  // while still filling the entire viewport.
-  for (let cols = 1; cols <= filmCount; cols++) {
-    const rows = Math.ceil(filmCount / cols);
-    const cellWidth = viewportWidth / cols;
-    const cellHeight = viewportHeight / rows;
-    const aspect = cellWidth / cellHeight;
-    // Target aspect 0.65–0.9 (a bit narrower than square)
-    if (aspect >= 0.55 && aspect <= 0.95) {
-      return cols;
+const POSTER_ASPECT = 2 / 3; // width / height of a typical movie poster
+const MIN_POSTER_WIDTH_PX = 90; // below this, allow vertical scroll instead of cramming
+
+interface Layout {
+  cols: number;
+  rows: number;
+  scroll: boolean; // whether to allow vertical scrolling because posters would be too small
+}
+
+/**
+ * Pick (cols, rows) so that:
+ *   1. all N posters fit in a (cols × rows) grid (cols * rows >= N)
+ *   2. each cell's aspect ratio is as close to a poster's as possible
+ *      (so the contained poster fills the cell with no letterbox)
+ *   3. empty cells in the last row are minimised
+ *   4. the resulting poster width isn't smaller than MIN_POSTER_WIDTH_PX
+ *      — if every layout would be smaller, allow vertical scrolling.
+ */
+function computeOptimalLayout(N: number, W: number, H: number): Layout {
+  if (N <= 0) return { cols: 1, rows: 1, scroll: false };
+
+  let best: { cols: number; rows: number; posterWidth: number; score: number } | null = null;
+
+  for (let cols = 1; cols <= N; cols++) {
+    const rows = Math.ceil(N / cols);
+    const cellWidth = W / cols;
+    const cellHeight = H / rows;
+    const cellAspect = cellWidth / cellHeight;
+
+    // Effective poster size inside the cell (object-contain, 2:3)
+    let posterWidth: number;
+    let posterHeight: number;
+    if (cellAspect < POSTER_ASPECT) {
+      posterWidth = cellWidth;
+      posterHeight = cellWidth / POSTER_ASPECT;
+    } else {
+      posterHeight = cellHeight;
+      posterWidth = cellHeight * POSTER_ASPECT;
+    }
+
+    const posterArea = posterWidth * posterHeight;
+    const emptyCells = cols * rows - N;
+    // Empty cells are visible dark space — penalise meaningfully but don't
+    // forbid (sometimes a layout with one empty cell still gives much
+    // bigger posters than the perfect-rectangle alternative).
+    const emptyPenalty = emptyCells * cellWidth * cellHeight * 0.6;
+    const score = posterArea - emptyPenalty;
+
+    if (!best || score > best.score) {
+      best = { cols, rows, posterWidth, score };
     }
   }
-  // Fallbacks based on common counts
-  if (filmCount <= 3) return filmCount;
-  if (filmCount <= 6) return isLandscape ? 3 : 2;
-  if (filmCount <= 9) return 3;
-  if (filmCount <= 12) return 4;
-  return 5;
+
+  if (!best) return { cols: 1, rows: 1, scroll: false };
+
+  if (best.posterWidth < MIN_POSTER_WIDTH_PX) {
+    // Posters are too small at the chosen layout — switch to a fixed
+    // poster width and stack vertically with scrolling enabled.
+    const cols = Math.max(1, Math.floor(W / 200));
+    const rows = Math.ceil(N / cols);
+    return { cols, rows, scroll: true };
+  }
+
+  return { cols: best.cols, rows: best.rows, scroll: false };
 }
 
 export function VotingGrid({ films, onSelect }: { films: Film[]; onSelect: (film: Film) => void }) {
@@ -34,26 +77,44 @@ export function VotingGrid({ films, onSelect }: { films: Film[]; onSelect: (film
     const update = () => setViewport({ width: window.innerWidth, height: window.innerHeight });
     update();
     window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("orientationchange", update);
+    };
   }, []);
 
-  const cols = useMemo(
-    () => computeColumns(films.length, viewport.width, viewport.height),
+  const { cols, rows, scroll } = useMemo(
+    () => computeOptimalLayout(films.length, viewport.width, viewport.height),
     [films.length, viewport.width, viewport.height],
   );
 
-  const rows = Math.ceil(films.length / cols);
+  // Render as rows of flex-1 cards — full rows have `cols` items at equal
+  // width, the last row stretches its (possibly fewer) items to fill the
+  // row width so there are no visible empty cells.
+  const rowsArr: Film[][] = [];
+  for (let r = 0; r < rows; r++) {
+    rowsArr.push(films.slice(r * cols, r * cols + cols));
+  }
 
   return (
     <div
-      className="no-select grid h-screen w-screen gap-2 p-2"
-      style={{
-        gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-        gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
-      }}
+      className={`no-select flex w-screen flex-col gap-2 p-2 ${
+        scroll ? "min-h-screen overflow-y-auto" : "h-screen"
+      }`}
     >
-      {films.map((film) => (
-        <FilmCard key={film.id} film={film} onClick={() => onSelect(film)} />
+      {rowsArr.map((rowFilms, r) => (
+        <div
+          key={r}
+          className={`flex w-full gap-2 ${scroll ? "" : "min-h-0 flex-1"}`}
+          style={scroll ? { aspectRatio: `${cols * POSTER_ASPECT} / 1` } : undefined}
+        >
+          {rowFilms.map((film) => (
+            <div key={film.id} className="min-w-0 min-h-0 flex-1">
+              <FilmCard film={film} onClick={() => onSelect(film)} />
+            </div>
+          ))}
+        </div>
       ))}
     </div>
   );
