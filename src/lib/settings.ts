@@ -2,6 +2,7 @@ import { prisma } from "./prisma";
 
 export const SETTING_KEYS = {
   VOTING_OPEN: "votingOpen",
+  VOTING_OPENED_AT: "votingOpenedAt",
   EVENT_NAME: "eventName",
   ADMIN_PASSWORD_HASH: "adminPasswordHash",
 } as const;
@@ -33,4 +34,8 @@ export async function isVotingOpen(): Promise<boolean> {
 
 export async function getEventName(): Promise<string> {
   return (await getSetting(SETTING_KEYS.EVENT_NAME)) ?? "Film Festival";
+}
+
+export async function getVotingOpenedAt(): Promise<string | null> {
+  return await getSetting(SETTING_KEYS.VOTING_OPENED_AT);
 }

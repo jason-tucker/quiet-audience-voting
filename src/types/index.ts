@@ -94,4 +94,12 @@ export interface VoteSnapshotSummary {
 export interface AppStatus {
   votingOpen: boolean;
   eventName: string;
+  votingOpenedAt: string | null;
+}
+
+export interface VoteEvent {
+  id: string;
+  filmId: string;
+  filmName: string;
+  timestamp: string;
 }

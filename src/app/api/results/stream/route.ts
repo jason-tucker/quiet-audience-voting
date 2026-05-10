@@ -1,6 +1,9 @@
 import { addClient, removeClient, getCurrentResults } from "@/lib/sse";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+const HEARTBEAT_MS = 3000;
 
 export async function GET() {
   const encoder = new TextEncoder();
@@ -14,15 +17,19 @@ export async function GET() {
       } catch {
         // ignore
       }
-      // Heartbeat every 25s so proxies don't close the connection.
-      const interval = setInterval(() => {
+
+      // Heartbeat as a real `data:` event so the client's onmessage handler
+      // fires and the watchdog stays armed. Plain SSE comments don't trigger
+      // onmessage, which made the client think the connection was stale.
+      const interval = setInterval(async () => {
         try {
-          controller.enqueue(encoder.encode(`: ping\n\n`));
+          const snapshot = await getCurrentResults();
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(snapshot)}\n\n`));
         } catch {
           clearInterval(interval);
         }
-      }, 25000);
-      // Stash interval so we can clear it on cancel
+      }, HEARTBEAT_MS);
+
       (controller as unknown as { _interval?: NodeJS.Timeout })._interval = interval;
     },
     cancel(controller) {

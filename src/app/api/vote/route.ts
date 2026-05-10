@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
   const ipAddress = getClientIp(request);
 
-  await prisma.vote.create({
+  const created = await prisma.vote.create({
     data: {
       filmId,
       deviceFingerprint: deviceInfo.fingerprint,
@@ -55,7 +55,13 @@ export async function POST(request: NextRequest) {
   });
 
   // Fire-and-forget broadcast — don't await; don't block the response.
-  getCurrentResults()
+  // Include the just-cast vote so live clients can animate it.
+  getCurrentResults({
+    id: created.id,
+    filmId: created.filmId,
+    filmName: film.name,
+    timestamp: created.timestamp.toISOString(),
+  })
     .then((payload) => broadcastUpdate(payload))
     .catch(() => {});
 

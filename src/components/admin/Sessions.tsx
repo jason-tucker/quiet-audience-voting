@@ -3,11 +3,14 @@
 import { useEffect, useState } from "react";
 import type { VoteSnapshotSummary } from "@/types";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 
 export function Sessions() {
   const [snapshots, setSnapshots] = useState<VoteSnapshotSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [resetting, setResetting] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetLabel, setResetLabel] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [stats, setStats] = useState<{ totalVotes: number } | null>(null);
 
@@ -28,56 +31,47 @@ export function Sessions() {
     load();
   }, []);
 
-  const onReset = async () => {
-    const totalVotes = stats?.totalVotes ?? 0;
-    if (totalVotes === 0) {
-      alert("There are no current votes to snapshot.");
-      return;
-    }
-    const label = prompt(
-      `End the current session and snapshot ${totalVotes} ${totalVotes === 1 ? "vote" : "votes"}.\n\nLabel for this snapshot:`,
-      `Session ${new Date().toLocaleString()}`,
-    );
-    if (label === null) return;
-    if (
-      !confirm(
-        `This will save a snapshot and DELETE all ${totalVotes} current votes. The last 5 snapshots are kept; older ones are pruned.\n\nContinue?`,
-      )
-    )
-      return;
+  const openReset = () => {
+    setResetLabel(`Session ${new Date().toLocaleString()}`);
+    setResetOpen(true);
+  };
 
+  const submitReset = async () => {
     setResetting(true);
     try {
       const res = await fetch("/api/admin/sessions/reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label }),
+        body: JSON.stringify({ label: resetLabel.trim() }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         alert(data.error ?? "Failed to reset");
         return;
       }
+      setResetOpen(false);
       await load();
     } finally {
       setResetting(false);
     }
   };
 
+  const totalVotes = stats?.totalVotes ?? 0;
+
   return (
     <div className="space-y-6">
       <section className="rounded-xl bg-zinc-900 p-6 ring-1 ring-zinc-800">
         <h2 className="text-lg font-semibold text-white">Current session</h2>
         <p className="mt-1 text-sm text-white/60">
-          {stats ? `${stats.totalVotes} ${stats.totalVotes === 1 ? "vote" : "votes"} cast so far.` : "Loading…"}
+          {stats ? `${totalVotes} ${totalVotes === 1 ? "vote" : "votes"} cast so far.` : "Loading…"}
         </p>
         <p className="mt-3 text-sm text-white/50">
           Ending the session takes a snapshot (preserved in the table below) and clears the live
           vote table so the next audience starts at zero. Only the last 5 snapshots are kept.
         </p>
         <div className="mt-4">
-          <Button variant="danger" onClick={onReset} disabled={resetting}>
-            {resetting ? "Saving snapshot…" : "End session and reset votes"}
+          <Button variant="danger" onClick={openReset} disabled={resetting || totalVotes === 0}>
+            End session and reset votes
           </Button>
         </div>
       </section>
@@ -149,6 +143,34 @@ export function Sessions() {
           </ul>
         )}
       </section>
+
+      <Modal isOpen={resetOpen} onClose={() => setResetOpen(false)} title="End session and reset votes">
+        <div className="space-y-4">
+          <p className="text-sm text-white/70">
+            This will save a snapshot of the current{" "}
+            <span className="font-semibold text-white">{totalVotes}</span>{" "}
+            {totalVotes === 1 ? "vote" : "votes"} and DELETE them from the live table. The last 5
+            snapshots are kept; older ones are pruned automatically.
+          </p>
+          <div>
+            <label className="mb-1 block text-sm text-white/80">Snapshot label</label>
+            <input
+              value={resetLabel}
+              onChange={(e) => setResetLabel(e.target.value)}
+              autoFocus
+              className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-white outline-none ring-1 ring-zinc-700 focus:ring-blue-500"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setResetOpen(false)} disabled={resetting}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={submitReset} disabled={resetting || !resetLabel.trim()}>
+              {resetting ? "Saving snapshot…" : "End session"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

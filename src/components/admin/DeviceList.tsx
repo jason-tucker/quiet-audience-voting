@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useState } from "react";
 import type { DeviceSummary, TrustedDeviceProfile } from "@/types";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 
 function shortFingerprint(fp: string): string {
   return fp.slice(0, 12);
@@ -14,6 +15,15 @@ export function DeviceList() {
   const [hasTrusted, setHasTrusted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
+
+  // Modal state for "Mark as example"
+  const [trustTarget, setTrustTarget] = useState<DeviceSummary | null>(null);
+  const [trustLabel, setTrustLabel] = useState("");
+  const [trusting, setTrusting] = useState(false);
+
+  // Modal state for "Remove trusted profile"
+  const [removeTarget, setRemoveTarget] = useState<TrustedDeviceProfile | null>(null);
+  const [removing, setRemoving] = useState(false);
 
   const load = async () => {
     try {
@@ -42,25 +52,46 @@ export function DeviceList() {
     };
   }, []);
 
-  const onTrust = async (device: DeviceSummary) => {
-    const label = prompt(
-      "Label for this trusted device (e.g. 'Lobby iPad'):",
-      `iPad ${profiles.length + 1}`,
-    );
-    if (label === null) return;
-    const res = await fetch("/api/admin/trusted-devices", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fingerprint: device.fingerprint, label }),
-    });
-    if (res.ok) load();
-    else alert("Failed to mark device as trusted");
+  const openTrustModal = (device: DeviceSummary) => {
+    setTrustTarget(device);
+    setTrustLabel(`iPad ${profiles.length + 1}`);
   };
 
-  const onRemoveTrust = async (profileId: string) => {
-    if (!confirm("Remove this trusted device profile?")) return;
-    const res = await fetch(`/api/admin/trusted-devices/${profileId}`, { method: "DELETE" });
-    if (res.ok) load();
+  const submitTrust = async () => {
+    if (!trustTarget) return;
+    setTrusting(true);
+    try {
+      const res = await fetch("/api/admin/trusted-devices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fingerprint: trustTarget.fingerprint, label: trustLabel.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error ?? "Failed to mark device as trusted");
+        return;
+      }
+      setTrustTarget(null);
+      await load();
+    } finally {
+      setTrusting(false);
+    }
+  };
+
+  const submitRemove = async () => {
+    if (!removeTarget) return;
+    setRemoving(true);
+    try {
+      const res = await fetch(`/api/admin/trusted-devices/${removeTarget.id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setRemoveTarget(null);
+        await load();
+      }
+    } finally {
+      setRemoving(false);
+    }
   };
 
   if (loading) return <p className="text-white/60">Loading devices…</p>;
@@ -94,7 +125,7 @@ export function DeviceList() {
                     {p.platform ?? "—"} · {p.screenWidth}×{p.screenHeight}
                   </p>
                 </div>
-                <Button size="sm" variant="ghost" onClick={() => onRemoveTrust(p.id)}>
+                <Button size="sm" variant="ghost" onClick={() => setRemoveTarget(p)}>
                   Remove
                 </Button>
               </li>
@@ -162,7 +193,7 @@ export function DeviceList() {
                             variant="secondary"
                             onClick={(e) => {
                               e.stopPropagation();
-                              onTrust(d);
+                              openTrustModal(d);
                             }}
                           >
                             Mark as example
@@ -203,6 +234,55 @@ export function DeviceList() {
           </table>
         </div>
       )}
+
+      <Modal
+        isOpen={!!trustTarget}
+        onClose={() => setTrustTarget(null)}
+        title="Mark device as example"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-white/70">
+            Give this trusted device a label so you can recognise it later (e.g. &quot;Lobby
+            iPad&quot; or &quot;Exit B iPad&quot;).
+          </p>
+          <input
+            value={trustLabel}
+            onChange={(e) => setTrustLabel(e.target.value)}
+            autoFocus
+            className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-white outline-none ring-1 ring-zinc-700 focus:ring-blue-500"
+          />
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setTrustTarget(null)}>
+              Cancel
+            </Button>
+            <Button onClick={submitTrust} disabled={trusting || !trustLabel.trim()}>
+              {trusting ? "Saving…" : "Mark as example"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!removeTarget}
+        onClose={() => setRemoveTarget(null)}
+        title="Remove trusted device profile"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-white/70">
+            Remove the profile <span className="font-semibold text-white">{removeTarget?.label}</span>?
+            Devices matching it will go back to being flagged as &quot;Weird&quot; until you trust
+            another one.
+          </p>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setRemoveTarget(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={submitRemove} disabled={removing}>
+              {removing ? "Removing…" : "Remove"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

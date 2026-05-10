@@ -1,7 +1,16 @@
 import { prisma } from "./prisma";
-import type { VoteResult } from "@/types";
+import { getVotingOpenedAt } from "./settings";
+import type { VoteResult, VoteEvent } from "@/types";
 
 type Controller = ReadableStreamDefaultController<Uint8Array>;
+
+export interface SsePayload {
+  films: VoteResult[];
+  total: number;
+  votingOpenedAt: string | null;
+  lastVote?: VoteEvent;
+  serverTime: string;
+}
 
 const clients = new Set<Controller>();
 const encoder = new TextEncoder();
@@ -14,7 +23,7 @@ export function removeClient(controller: Controller): void {
   clients.delete(controller);
 }
 
-export function broadcastUpdate(payload: { films: VoteResult[]; total: number }): void {
+export function broadcastUpdate(payload: SsePayload): void {
   const message = encoder.encode(`data: ${JSON.stringify(payload)}\n\n`);
   for (const controller of clients) {
     try {
@@ -25,11 +34,14 @@ export function broadcastUpdate(payload: { films: VoteResult[]; total: number })
   }
 }
 
-export async function getCurrentResults(): Promise<{ films: VoteResult[]; total: number }> {
-  const films = await prisma.film.findMany({
-    orderBy: { createdAt: "asc" },
-    include: { _count: { select: { votes: true } } },
-  });
+export async function getCurrentResults(lastVote?: VoteEvent): Promise<SsePayload> {
+  const [films, votingOpenedAt] = await Promise.all([
+    prisma.film.findMany({
+      orderBy: { createdAt: "asc" },
+      include: { _count: { select: { votes: true } } },
+    }),
+    getVotingOpenedAt(),
+  ]);
 
   const total = films.reduce((sum, f) => sum + f._count.votes, 0);
 
@@ -43,5 +55,11 @@ export async function getCurrentResults(): Promise<{ films: VoteResult[]; total:
   }));
 
   results.sort((a, b) => b.count - a.count);
-  return { films: results, total };
+  return {
+    films: results,
+    total,
+    votingOpenedAt,
+    lastVote,
+    serverTime: new Date().toISOString(),
+  };
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentResults, broadcastUpdate } from "@/lib/sse";
+import { setSetting, SETTING_KEYS } from "@/lib/settings";
 
 const SNAPSHOTS_TO_KEEP = 5;
 
@@ -37,6 +38,10 @@ export async function POST(request: Request) {
       await tx.voteSnapshot.deleteMany({ where: { id: { in: toDelete } } });
     }
   });
+
+  // Reset the voting-opened timestamp too so the timeline starts fresh on
+  // the next "open voting" toggle.
+  await setSetting(SETTING_KEYS.VOTING_OPENED_AT, "");
 
   // Push the cleared state to any open results streams.
   const cleared = await getCurrentResults();
