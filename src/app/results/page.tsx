@@ -11,6 +11,8 @@ interface SsePayload {
   serverTime: string;
 }
 
+const STATUS_POLL_MS = 5000;
+
 const STALE_AFTER_MS = 5000;
 
 export default function ResultsPage() {
@@ -20,16 +22,30 @@ export default function ResultsPage() {
   const [votingOpenedAt, setVotingOpenedAt] = useState<string | null>(null);
   const [status, setStatus] = useState<"live" | "stale" | "disconnected">("disconnected");
   const [lastUpdateMs, setLastUpdateMs] = useState<number | null>(null);
+  const [votingOpen, setVotingOpen] = useState<boolean | null>(null);
 
   const lastUpdateAt = useRef<number | null>(null);
   const reconnectAttempt = useRef(0);
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    fetch("/api/status")
-      .then((r) => r.json() as Promise<AppStatus>)
-      .then((s) => setEventName(s.eventName))
-      .catch(() => {});
+    let mounted = true;
+    const loadStatus = async () => {
+      try {
+        const s: AppStatus = await fetch("/api/status").then((r) => r.json());
+        if (!mounted) return;
+        setEventName(s.eventName);
+        setVotingOpen(s.votingOpen);
+      } catch {
+        // ignore
+      }
+    };
+    loadStatus();
+    const id = setInterval(loadStatus, STATUS_POLL_MS);
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
   }, []);
 
   // Watchdog: if we haven't received an update in STALE_AFTER_MS, mark stale
@@ -105,6 +121,7 @@ export default function ResultsPage() {
       votingOpenedAt={votingOpenedAt}
       status={status}
       lastUpdateMs={lastUpdateMs}
+      votingOpen={votingOpen}
     />
   );
 }

@@ -64,6 +64,7 @@ export interface DeviceSummary {
   firstSeen: string;
   lastSeen: string;
   films: string[];
+  votesByFilm: Record<string, number>;
   ipAddress: string;
   userAgent: string;
   platform: string | null;

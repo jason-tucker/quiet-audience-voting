@@ -1,9 +1,10 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
-import type { DeviceSummary, TrustedDeviceProfile } from "@/types";
+import type { DeviceSummary, Film, TrustedDeviceProfile } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { DeviceFilmBreakdown } from "./DeviceFilmBreakdown";
 
 function shortFingerprint(fp: string): string {
   return fp.slice(0, 12);
@@ -12,6 +13,7 @@ function shortFingerprint(fp: string): string {
 export function DeviceList() {
   const [devices, setDevices] = useState<DeviceSummary[]>([]);
   const [profiles, setProfiles] = useState<TrustedDeviceProfile[]>([]);
+  const [films, setFilms] = useState<Film[]>([]);
   const [hasTrusted, setHasTrusted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -27,13 +29,15 @@ export function DeviceList() {
 
   const load = async () => {
     try {
-      const [d, p] = await Promise.all([
+      const [d, p, f] = await Promise.all([
         fetch("/api/admin/devices").then((r) => r.json()),
         fetch("/api/admin/trusted-devices").then((r) => r.json()),
+        fetch("/api/films").then((r) => r.json()),
       ]);
       setDevices(d.devices);
       setHasTrusted(d.hasTrustedProfiles);
       setProfiles(p.profiles);
+      setFilms(f.films);
     } finally {
       setLoading(false);
     }
@@ -210,8 +214,10 @@ export function DeviceList() {
                               <p className="font-mono text-white/60">{d.fingerprint}</p>
                             </div>
                             <div>
-                              <p className="font-semibold text-white/80">Films voted for</p>
-                              <p className="text-white/60">{d.films.join(", ")}</p>
+                              <p className="font-semibold text-white/80">Vote distribution by film</p>
+                              <div className="mt-2">
+                                <DeviceFilmBreakdown films={films} filmCounts={d.votesByFilm} />
+                              </div>
                             </div>
                             <div>
                               <p className="font-semibold text-white/80">User agent</p>

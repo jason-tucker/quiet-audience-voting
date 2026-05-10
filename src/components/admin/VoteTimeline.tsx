@@ -12,32 +12,15 @@ import {
   Legend,
 } from "recharts";
 import type { AuditVote, AppStatus, Film } from "@/types";
+import { colorForFilm } from "@/lib/colors";
 
 const BUCKET_SECONDS = 30;
-
-// Distinct, readable colors for stacking up to ~15 films.
-const PALETTE = [
-  "#3b82f6",
-  "#22c55e",
-  "#f97316",
-  "#a855f7",
-  "#ec4899",
-  "#14b8a6",
-  "#eab308",
-  "#ef4444",
-  "#06b6d4",
-  "#84cc16",
-  "#f59e0b",
-  "#8b5cf6",
-  "#10b981",
-  "#d946ef",
-  "#0ea5e9",
-];
 
 interface Bucket {
   label: string;
   ts: number;
   total: number;
+  cumulative: number;
   [filmKey: string]: number | string;
 }
 
@@ -49,12 +32,19 @@ function bucketize(
 ): Bucket[] {
   const bucketMs = BUCKET_SECONDS * 1000;
   const buckets: Bucket[] = [];
+  // Running total per film, accumulated across buckets so the tooltip can
+  // surface "this bucket (cumulative)" without an extra pass at render time.
+  const running: Record<string, number> = {};
+  for (const f of films) running[f.id] = 0;
+  let runningTotal = 0;
+
   for (let t = startMs; t <= endMs + bucketMs; t += bucketMs) {
     const bucketEnd = t + bucketMs;
     const inWindow = votes.filter((v) => {
       const time = new Date(v.timestamp).getTime();
       return time >= t && time < bucketEnd;
     });
+    runningTotal += inWindow.length;
     const date = new Date(t);
     const bucket: Bucket = {
       label: date.toLocaleTimeString([], {
@@ -64,9 +54,13 @@ function bucketize(
       }),
       ts: t,
       total: inWindow.length,
+      cumulative: runningTotal,
     };
     for (const f of films) {
-      bucket[f.id] = inWindow.filter((v) => v.filmId === f.id).length;
+      const c = inWindow.filter((v) => v.filmId === f.id).length;
+      bucket[f.id] = c;
+      running[f.id] += c;
+      bucket[`${f.id}__total`] = running[f.id];
     }
     buckets.push(bucket);
   }
@@ -216,29 +210,39 @@ export function VoteTimeline() {
                 }}
                 labelStyle={{ color: "#a1a1aa" }}
                 itemStyle={{ color: "#fff" }}
-                formatter={(value: number, name: string) => {
+                formatter={(
+                  value: number,
+                  name: string,
+                  props: { payload?: Record<string, number> },
+                ) => {
                   const film = films.find((f) => f.id === name);
-                  return [value, film?.name ?? name];
+                  const total = props?.payload?.[`${name}__total`] ?? 0;
+                  return [`${value} (total ${total})`, film?.name ?? name];
                 }}
               />
-              <Legend
-                formatter={(value) => {
-                  const film = films.find((f) => f.id === value);
-                  return film?.name ?? value;
-                }}
-                wrapperStyle={{ fontSize: 11, color: "#a1a1aa" }}
-              />
-              {films.map((f, i) => (
-                <Area
-                  key={f.id}
-                  type="monotone"
-                  dataKey={f.id}
-                  stackId="1"
-                  stroke={PALETTE[i % PALETTE.length]}
-                  fill={PALETTE[i % PALETTE.length]}
-                  fillOpacity={0.7}
+              {films.length <= 12 && (
+                <Legend
+                  formatter={(value) => {
+                    const film = films.find((f) => f.id === value);
+                    return film?.name ?? value;
+                  }}
+                  wrapperStyle={{ fontSize: 11, color: "#a1a1aa" }}
                 />
-              ))}
+              )}
+              {films.map((f) => {
+                const color = colorForFilm(f.id);
+                return (
+                  <Area
+                    key={f.id}
+                    type="monotone"
+                    dataKey={f.id}
+                    stackId="1"
+                    stroke={color}
+                    fill={color}
+                    fillOpacity={0.7}
+                  />
+                );
+              })}
             </AreaChart>
           </ResponsiveContainer>
         </div>

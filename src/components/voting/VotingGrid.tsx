@@ -5,7 +5,11 @@ import type { Film } from "@/types";
 import { FilmCard } from "./FilmCard";
 
 const POSTER_ASPECT = 2 / 3; // width / height of a typical movie poster
-const MIN_POSTER_WIDTH_PX = 90; // below this, allow vertical scroll instead of cramming
+// Below this width, fall back to a scrollable grid instead of cramming
+// posters tinier and tinier. 70px is comfortable on iPad and small enough
+// that 50+ films still fit on a typical screen without scrolling.
+const MIN_POSTER_WIDTH_PX = 70;
+const SCROLL_FALLBACK_TARGET_WIDTH_PX = 180;
 
 interface Layout {
   cols: number;
@@ -62,7 +66,7 @@ function computeOptimalLayout(N: number, W: number, H: number): Layout {
   if (best.posterWidth < MIN_POSTER_WIDTH_PX) {
     // Posters are too small at the chosen layout — switch to a fixed
     // poster width and stack vertically with scrolling enabled.
-    const cols = Math.max(1, Math.floor(W / 200));
+    const cols = Math.max(1, Math.floor(W / SCROLL_FALLBACK_TARGET_WIDTH_PX));
     const rows = Math.ceil(N / cols);
     return { cols, rows, scroll: true };
   }
@@ -70,7 +74,15 @@ function computeOptimalLayout(N: number, W: number, H: number): Layout {
   return { cols: best.cols, rows: best.rows, scroll: false };
 }
 
-export function VotingGrid({ films, onSelect }: { films: Film[]; onSelect: (film: Film) => void }) {
+export function VotingGrid({
+  films,
+  onSelect,
+  highlightedId,
+}: {
+  films: Film[];
+  onSelect: (film: Film) => void;
+  highlightedId?: string | null;
+}) {
   const [viewport, setViewport] = useState({ width: 1024, height: 768 });
 
   useEffect(() => {
@@ -111,7 +123,11 @@ export function VotingGrid({ films, onSelect }: { films: Film[]; onSelect: (film
         >
           {rowFilms.map((film) => (
             <div key={film.id} className="min-w-0 min-h-0 flex-1">
-              <FilmCard film={film} onClick={() => onSelect(film)} />
+              <FilmCard
+                film={film}
+                onClick={() => onSelect(film)}
+                highlighted={highlightedId === film.id}
+              />
             </div>
           ))}
         </div>

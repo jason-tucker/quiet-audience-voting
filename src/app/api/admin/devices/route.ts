@@ -20,6 +20,7 @@ export async function GET() {
       existing.voteCount++;
       existing.lastSeen = v.timestamp.toISOString();
       if (!existing.films.includes(v.film.name)) existing.films.push(v.film.name);
+      existing.votesByFilm[v.filmId] = (existing.votesByFilm[v.filmId] ?? 0) + 1;
       existing.ipAddress = v.ipAddress;
       existing.userAgent = v.userAgent;
       existing.platform = v.platform;
@@ -31,6 +32,7 @@ export async function GET() {
         firstSeen: v.timestamp.toISOString(),
         lastSeen: v.timestamp.toISOString(),
         films: [v.film.name],
+        votesByFilm: { [v.filmId]: 1 },
         ipAddress: v.ipAddress,
         userAgent: v.userAgent,
         platform: v.platform,
@@ -40,7 +42,6 @@ export async function GET() {
     }
   }
 
-  // Compute trust status for each device using the latest known device fields
   for (const summary of byDevice.values()) {
     const latestVote = votes.find((v) => v.deviceFingerprint === summary.fingerprint);
     summary.trusted = matchesAnyTrustedProfile(

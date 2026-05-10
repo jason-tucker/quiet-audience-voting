@@ -5,6 +5,7 @@ import type { VoteResult } from "@/types";
 import { VoteBar } from "./VoteBar";
 import { WinnerDisplay } from "./WinnerDisplay";
 import { FilmTimelineModal } from "./FilmTimelineModal";
+import { ResultsTimeline } from "./ResultsTimeline";
 
 interface Props {
   films: VoteResult[];
@@ -13,6 +14,7 @@ interface Props {
   votingOpenedAt: string | null;
   status: "live" | "stale" | "disconnected";
   lastUpdateMs: number | null;
+  votingOpen: boolean | null;
 }
 
 function formatAge(ms: number | null): string {
@@ -31,6 +33,7 @@ export function ResultsBoard({
   votingOpenedAt,
   status,
   lastUpdateMs,
+  votingOpen,
 }: Props) {
   const winner = films.find((f) => f.count > 0);
   const rest = winner ? films.filter((f) => f.filmId !== winner.filmId) : films;
@@ -49,9 +52,21 @@ export function ResultsBoard({
 
   return (
     <div className="mx-auto min-h-screen max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
-      <header className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white sm:text-4xl">{eventName}</h1>
+      <header className="mb-8 flex items-center justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-3xl font-bold text-white sm:text-4xl">{eventName}</h1>
+            {votingOpen === true && (
+              <span className="rounded-full bg-green-900/60 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider text-green-300 ring-1 ring-green-700">
+                Voting open
+              </span>
+            )}
+            {votingOpen === false && (
+              <span className="rounded-full bg-red-900/60 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider text-red-300 ring-1 ring-red-700">
+                Voting closed
+              </span>
+            )}
+          </div>
           <p className="mt-1 text-sm text-white/60 sm:text-base">
             {total} {total === 1 ? "vote" : "votes"} cast
           </p>
@@ -73,6 +88,12 @@ export function ResultsBoard({
           </div>
         </div>
       </header>
+
+      {votingOpenedAt && films.length > 0 && (
+        <section className="mb-6">
+          <ResultsTimeline films={films} votingOpenedAt={votingOpenedAt} />
+        </section>
+      )}
 
       {winner && (
         <section className="mb-8" onClick={() => setSelected(winner)}>

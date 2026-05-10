@@ -5,6 +5,7 @@ import { VotingToggle } from "@/components/admin/VotingToggle";
 import { ShowcaseToggle } from "@/components/admin/ShowcaseToggle";
 import { StatCard } from "@/components/admin/StatCard";
 import { VoteTimeline } from "@/components/admin/VoteTimeline";
+import { PerDeviceTimeline } from "@/components/admin/PerDeviceTimeline";
 
 interface Stats {
   totalFilms: number;
@@ -69,6 +70,7 @@ export default function AdminDashboard() {
       </div>
 
       <VoteTimeline />
+      <PerDeviceTimeline />
     </div>
   );
 }
