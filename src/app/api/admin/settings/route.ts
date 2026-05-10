@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { getAllSettings, isVotingOpen, setSetting, SETTING_KEYS } from "@/lib/settings";
+import {
+  ADMIN_WRITABLE_SETTINGS,
+  getAllSettings,
+  isVotingOpen,
+  setSetting,
+  SETTING_KEYS,
+} from "@/lib/settings";
 import { ensureShowcaseSync, startShowcase, stopShowcase } from "@/lib/showcase";
 
 export async function GET() {
@@ -39,7 +45,7 @@ export async function PUT(request: Request) {
   const wasOpen = await isVotingOpen();
 
   for (const [key, value] of Object.entries(rest)) {
-    if (key === SETTING_KEYS.ADMIN_PASSWORD_HASH) continue;
+    if (!ADMIN_WRITABLE_SETTINGS.has(key)) continue;
     if (typeof value === "string") {
       await setSetting(key, value);
     } else if (typeof value === "boolean") {

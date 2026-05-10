@@ -9,14 +9,21 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as { fingerprint: string; label?: string };
-  if (!body.fingerprint) {
+  let body: { fingerprint?: unknown; label?: unknown };
+  try {
+    body = (await request.json()) as { fingerprint?: unknown; label?: unknown };
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  const fingerprint = typeof body.fingerprint === "string" ? body.fingerprint : "";
+  const labelInput = typeof body.label === "string" ? body.label.trim() : "";
+  if (!fingerprint) {
     return NextResponse.json({ error: "fingerprint required" }, { status: 400 });
   }
 
   // Pull the most recent vote with this fingerprint to copy device fields from.
   const sample = await prisma.vote.findFirst({
-    where: { deviceFingerprint: body.fingerprint },
+    where: { deviceFingerprint: fingerprint },
     orderBy: { timestamp: "desc" },
   });
   if (!sample) {
@@ -24,7 +31,7 @@ export async function POST(request: Request) {
   }
 
   const existing = await prisma.trustedDeviceProfile.findFirst({
-    where: { fingerprint: body.fingerprint },
+    where: { fingerprint },
   });
   if (existing) {
     return NextResponse.json({ profile: existing });
@@ -32,8 +39,8 @@ export async function POST(request: Request) {
 
   const profile = await prisma.trustedDeviceProfile.create({
     data: {
-      label: body.label?.trim() || `Trusted device ${new Date().toLocaleString()}`,
-      fingerprint: body.fingerprint,
+      label: labelInput || `Trusted device ${new Date().toLocaleString()}`,
+      fingerprint,
       userAgent: sample.userAgent,
       platform: sample.platform,
       screenWidth: sample.screenWidth,

@@ -27,7 +27,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ film });
   } catch (err) {
     console.error("Failed to create film:", err);
-    const message = err instanceof Error ? err.message : "Database error";
-    return NextResponse.json({ error: `Failed to create film: ${message}` }, { status: 500 });
+    return NextResponse.json({ error: "Failed to create film" }, { status: 500 });
   }
 }

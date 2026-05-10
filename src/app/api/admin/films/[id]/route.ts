@@ -22,8 +22,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ film });
   } catch (err) {
     console.error("Failed to update film:", err);
-    const message = err instanceof Error ? err.message : "Database error";
-    return NextResponse.json({ error: `Failed to update film: ${message}` }, { status: 500 });
+    return NextResponse.json({ error: "Failed to update film" }, { status: 500 });
   }
 }
 
@@ -34,7 +33,6 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Failed to delete film:", err);
-    const message = err instanceof Error ? err.message : "Database error";
-    return NextResponse.json({ error: `Failed to delete film: ${message}` }, { status: 500 });
+    return NextResponse.json({ error: "Failed to delete film" }, { status: 500 });
   }
 }

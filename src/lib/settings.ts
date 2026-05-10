@@ -10,6 +10,15 @@ export const SETTING_KEYS = {
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];
 
+// Keys an admin is allowed to write through PUT /api/admin/settings.
+// VOTING_OPENED_AT is set by the server when voting transitions open and
+// ADMIN_PASSWORD_HASH has its own write path; neither belongs in this set.
+export const ADMIN_WRITABLE_SETTINGS: ReadonlySet<string> = new Set([
+  SETTING_KEYS.VOTING_OPEN,
+  SETTING_KEYS.EVENT_NAME,
+  SETTING_KEYS.SHOWCASE_MODE,
+]);
+
 export async function getSetting(key: string): Promise<string | null> {
   const row = await prisma.setting.findUnique({ where: { key } });
   return row?.value ?? null;

@@ -86,8 +86,7 @@ export async function POST(request: NextRequest) {
       );
     }
     console.error("Upload stream failed:", err);
-    const message = err instanceof Error ? err.message : "Upload failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
   }
 
   if (bytesReceived === 0) {
