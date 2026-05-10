@@ -26,7 +26,7 @@ export function FilmForm({ isOpen, onClose, onSaved, film }: Props) {
     try {
       // Send the file as the raw request body. The server handles multipart-free
       // uploads at /api/admin/upload — see route.ts for the rationale.
-      const res = await fetch("/api/admin/upload", {
+      const res = await fetch("/api/upload-poster", {
         method: "POST",
         headers: {
           "Content-Type": file.type || "application/octet-stream",
