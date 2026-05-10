@@ -74,6 +74,8 @@ function toLocalInput(d: Date): string {
   )}:${pad(d.getMinutes())}`;
 }
 
+type Mode = "per-bucket" | "cumulative";
+
 export function VoteTimeline() {
   const [votes, setVotes] = useState<AuditVote[]>([]);
   const [films, setFilms] = useState<Film[]>([]);
@@ -81,6 +83,7 @@ export function VoteTimeline() {
   const [loading, setLoading] = useState(true);
   const [from, setFrom] = useState<string>(""); // local datetime-local string
   const [to, setTo] = useState<string>("");
+  const [mode, setMode] = useState<Mode>("per-bucket");
 
   useEffect(() => {
     let mounted = true;
@@ -162,6 +165,31 @@ export function VoteTimeline() {
         </div>
         <div className="flex flex-wrap items-end gap-2">
           <div>
+            <label className="block text-xs text-white/50">View</label>
+            <div className="inline-flex rounded-lg bg-zinc-800 p-0.5 ring-1 ring-zinc-700">
+              <button
+                onClick={() => setMode("per-bucket")}
+                className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                  mode === "per-bucket"
+                    ? "bg-blue-600 text-white"
+                    : "text-white/60 hover:text-white"
+                }`}
+              >
+                Per bucket
+              </button>
+              <button
+                onClick={() => setMode("cumulative")}
+                className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                  mode === "cumulative"
+                    ? "bg-blue-600 text-white"
+                    : "text-white/60 hover:text-white"
+                }`}
+              >
+                Cumulative
+              </button>
+            </div>
+          </div>
+          <div>
             <label className="block text-xs text-white/50">From</label>
             <input
               type="datetime-local"
@@ -193,7 +221,7 @@ export function VoteTimeline() {
         </div>
       </div>
 
-      {data.every((b) => b.total === 0) ? (
+      {data.length === 0 || data[data.length - 1]?.cumulative === 0 ? (
         <p className="py-12 text-center text-white/40">No votes in this window yet.</p>
       ) : (
         <div className="h-72">
@@ -215,27 +243,34 @@ export function VoteTimeline() {
                   name: string,
                   props: { payload?: Record<string, number> },
                 ) => {
-                  const film = films.find((f) => f.id === name);
-                  const total = props?.payload?.[`${name}__total`] ?? 0;
-                  return [`${value} (total ${total})`, film?.name ?? name];
+                  // Strip __total suffix when looking up the film
+                  const filmId = name.replace(/__total$/, "");
+                  const film = films.find((f) => f.id === filmId);
+                  if (mode === "cumulative") {
+                    return [`${value} total`, film?.name ?? filmId];
+                  }
+                  const total = props?.payload?.[`${filmId}__total`] ?? 0;
+                  return [`${value} (total ${total})`, film?.name ?? filmId];
                 }}
               />
               {films.length <= 12 && (
                 <Legend
                   formatter={(value) => {
-                    const film = films.find((f) => f.id === value);
-                    return film?.name ?? value;
+                    const filmId = String(value).replace(/__total$/, "");
+                    const film = films.find((f) => f.id === filmId);
+                    return film?.name ?? filmId;
                   }}
                   wrapperStyle={{ fontSize: 11, color: "#a1a1aa" }}
                 />
               )}
               {films.map((f) => {
                 const color = colorForFilm(f.id);
+                const dataKey = mode === "cumulative" ? `${f.id}__total` : f.id;
                 return (
                   <Area
                     key={f.id}
                     type="monotone"
-                    dataKey={f.id}
+                    dataKey={dataKey}
                     stackId="1"
                     stroke={color}
                     fill={color}

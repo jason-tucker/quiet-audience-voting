@@ -55,6 +55,8 @@ function bucketize(events: VoteEvent[], films: VoteResult[], startMs: number, en
   return buckets;
 }
 
+type Mode = "per-bucket" | "cumulative";
+
 export function ResultsTimeline({
   films,
   votingOpenedAt,
@@ -63,6 +65,7 @@ export function ResultsTimeline({
   votingOpenedAt: string | null;
 }) {
   const [events, setEvents] = useState<VoteEvent[]>([]);
+  const [mode, setMode] = useState<Mode>("per-bucket");
 
   useEffect(() => {
     let mounted = true;
@@ -97,13 +100,33 @@ export function ResultsTimeline({
     return null;
   }
 
-  const noVotes = data.every((b) => b.total === 0);
+  const noVotes = events.length === 0;
 
   return (
     <div className="rounded-xl bg-zinc-900 p-4 ring-1 ring-zinc-800 sm:p-6">
-      <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-white/50">
-        Vote timeline
-      </h3>
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-white/50">
+          Vote timeline
+        </h3>
+        <div className="inline-flex rounded-lg bg-zinc-800 p-0.5 ring-1 ring-zinc-700">
+          <button
+            onClick={() => setMode("per-bucket")}
+            className={`rounded-md px-2.5 py-0.5 text-xs font-medium transition-colors ${
+              mode === "per-bucket" ? "bg-blue-600 text-white" : "text-white/60 hover:text-white"
+            }`}
+          >
+            Per bucket
+          </button>
+          <button
+            onClick={() => setMode("cumulative")}
+            className={`rounded-md px-2.5 py-0.5 text-xs font-medium transition-colors ${
+              mode === "cumulative" ? "bg-blue-600 text-white" : "text-white/60 hover:text-white"
+            }`}
+          >
+            Cumulative
+          </button>
+        </div>
+      </div>
       {noVotes ? (
         <p className="py-8 text-center text-white/40">Waiting for votes…</p>
       ) : (
@@ -132,18 +155,23 @@ export function ResultsTimeline({
                   name: string,
                   props: { payload?: Record<string, number> },
                 ) => {
-                  const film = films.find((f) => f.filmId === name);
-                  const total = props?.payload?.[`${name}__total`] ?? 0;
-                  return [`${value} (total ${total})`, film?.filmName ?? name];
+                  const filmId = name.replace(/__total$/, "");
+                  const film = films.find((f) => f.filmId === filmId);
+                  if (mode === "cumulative") {
+                    return [`${value} total`, film?.filmName ?? filmId];
+                  }
+                  const total = props?.payload?.[`${filmId}__total`] ?? 0;
+                  return [`${value} (total ${total})`, film?.filmName ?? filmId];
                 }}
               />
               {films.map((f) => {
                 const color = colorForFilm(f.filmId);
+                const dataKey = mode === "cumulative" ? `${f.filmId}__total` : f.filmId;
                 return (
                   <Area
                     key={f.filmId}
                     type="monotone"
-                    dataKey={f.filmId}
+                    dataKey={dataKey}
                     stackId="1"
                     stroke={color}
                     fill={color}
