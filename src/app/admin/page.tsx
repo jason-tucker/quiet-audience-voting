@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { VotingToggle } from "@/components/admin/VotingToggle";
+import { ShowcaseToggle } from "@/components/admin/ShowcaseToggle";
 import { StatCard } from "@/components/admin/StatCard";
 import { VoteTimeline } from "@/components/admin/VoteTimeline";
 
@@ -12,7 +13,7 @@ interface Stats {
 }
 
 interface SettingsResponse {
-  settings: { votingOpen?: string; eventName?: string };
+  settings: { votingOpen?: string; eventName?: string; showcaseMode?: string };
   hasPassword: boolean;
 }
 
@@ -48,6 +49,7 @@ export default function AdminDashboard() {
 
   const votingOpen = settings?.settings.votingOpen === "true";
   const eventName = settings?.settings.eventName ?? "Film Festival";
+  const showcaseOn = settings?.settings.showcaseMode === "true";
 
   return (
     <div className="space-y-6">
@@ -57,6 +59,7 @@ export default function AdminDashboard() {
       </header>
 
       {settings && <VotingToggle initialOpen={votingOpen} />}
+      {settings && <ShowcaseToggle initialOn={showcaseOn} />}
 
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
         <StatCard label="Total films" value={stats?.totalFilms ?? "—"} />

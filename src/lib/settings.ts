@@ -5,6 +5,7 @@ export const SETTING_KEYS = {
   VOTING_OPENED_AT: "votingOpenedAt",
   EVENT_NAME: "eventName",
   ADMIN_PASSWORD_HASH: "adminPasswordHash",
+  SHOWCASE_MODE: "showcaseMode",
 } as const;
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];

@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getAllSettings, isVotingOpen, setSetting, SETTING_KEYS } from "@/lib/settings";
+import { ensureShowcaseSync, startShowcase, stopShowcase } from "@/lib/showcase";
 
 export async function GET() {
+  // Take this opportunity to resume the showcase simulator if it was on
+  // before a server restart but the in-memory timer was lost.
+  await ensureShowcaseSync();
   const settings = await getAllSettings();
   const hash = settings[SETTING_KEYS.ADMIN_PASSWORD_HASH] ?? "";
   // Don't leak the password hash to the client.
@@ -49,6 +53,15 @@ export async function PUT(request: Request) {
     !wasOpen
   ) {
     await setSetting(SETTING_KEYS.VOTING_OPENED_AT, new Date().toISOString());
+  }
+
+  // Start or stop the showcase simulator if the toggle was changed.
+  if (Object.prototype.hasOwnProperty.call(rest, SETTING_KEYS.SHOWCASE_MODE)) {
+    if (rest[SETTING_KEYS.SHOWCASE_MODE] === true) {
+      startShowcase();
+    } else {
+      stopShowcase();
+    }
   }
 
   return NextResponse.json({ success: true });
