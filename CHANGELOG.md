@@ -5,6 +5,8 @@ All notable changes to this project are documented here. The format is based on 
 ## [Unreleased]
 
 ### Added
+
+- chore(scaffolding): add Zod, Pino, Vitest, Playwright, Prettier, Husky, ESLint flat config, typed AppError hierarchy, central handleApiError, JSON-body parser. Phase 1 of full rewrite.
 - Initial project scaffold with Next.js 15, Prisma, SQLite, Tailwind CSS
 - Voting interface optimized for iPad (full-screen poster grid, tap to vote with confirmation step, 3-second reset)
 - Live results page using Server-Sent Events
