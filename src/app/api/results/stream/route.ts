@@ -1,34 +1,31 @@
-import { addClient, removeClient, getCurrentResults } from "@/lib/sse";
+import { addClient, removeClient, getCurrentResults, TooManySseClients } from "@/lib/sse";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function GET() {
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      addClient(controller);
+      try {
+        addClient(controller);
+      } catch (err) {
+        if (err instanceof TooManySseClients) {
+          controller.error(err);
+          return;
+        }
+        throw err;
+      }
       try {
         const initial = await getCurrentResults();
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(initial)}\n\n`));
       } catch {
-        // ignore
+        // The shared heartbeat will retry; no point failing the stream.
       }
-      // Heartbeat every 25s so proxies don't close the connection.
-      const interval = setInterval(() => {
-        try {
-          controller.enqueue(encoder.encode(`: ping\n\n`));
-        } catch {
-          clearInterval(interval);
-        }
-      }, 25000);
-      // Stash interval so we can clear it on cancel
-      (controller as unknown as { _interval?: NodeJS.Timeout })._interval = interval;
     },
     cancel(controller) {
       removeClient(controller);
-      const interval = (controller as unknown as { _interval?: NodeJS.Timeout })._interval;
-      if (interval) clearInterval(interval);
     },
   });
 

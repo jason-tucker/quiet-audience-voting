@@ -16,7 +16,6 @@ export function FilmForm({ isOpen, onClose, onSaved, film }: Props) {
   const [name, setName] = useState(film?.name ?? "");
   const [school, setSchool] = useState(film?.school ?? "");
   const [posterUrl, setPosterUrl] = useState(film?.posterUrl ?? "");
-  const [displayOrder, setDisplayOrder] = useState(film?.displayOrder ?? 0);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,9 +24,16 @@ export function FilmForm({ isOpen, onClose, onSaved, film }: Props) {
     setUploading(true);
     setError(null);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+      // Send the file as the raw request body. The server handles multipart-free
+      // uploads at /api/admin/upload — see route.ts for the rationale.
+      const res = await fetch("/api/upload-poster", {
+        method: "POST",
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+          "X-File-Name": encodeURIComponent(file.name),
+        },
+        body: file,
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Upload failed");
       setPosterUrl(data.url);
@@ -48,7 +54,7 @@ export function FilmForm({ isOpen, onClose, onSaved, film }: Props) {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, school, posterUrl, displayOrder }),
+        body: JSON.stringify({ name, school, posterUrl }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Save failed");
@@ -79,15 +85,6 @@ export function FilmForm({ isOpen, onClose, onSaved, film }: Props) {
             value={school}
             onChange={(e) => setSchool(e.target.value)}
             required
-            className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-white outline-none ring-1 ring-zinc-700 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm text-white/80">Display order</label>
-          <input
-            type="number"
-            value={displayOrder}
-            onChange={(e) => setDisplayOrder(Number(e.target.value))}
             className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-white outline-none ring-1 ring-zinc-700 focus:ring-blue-500"
           />
         </div>

@@ -1,8 +1,18 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { getAllSettings, setSetting, SETTING_KEYS } from "@/lib/settings";
+import {
+  ADMIN_WRITABLE_SETTINGS,
+  getAllSettings,
+  isVotingOpen,
+  setSetting,
+  SETTING_KEYS,
+} from "@/lib/settings";
+import { ensureShowcaseSync, startShowcase, stopShowcase } from "@/lib/showcase";
 
 export async function GET() {
+  // Take this opportunity to resume the showcase simulator if it was on
+  // before a server restart but the in-memory timer was lost.
+  await ensureShowcaseSync();
   const settings = await getAllSettings();
   const hash = settings[SETTING_KEYS.ADMIN_PASSWORD_HASH] ?? "";
   // Don't leak the password hash to the client.
@@ -12,8 +22,6 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   const body = (await request.json()) as Record<string, unknown>;
-
-  // Reserved keys with special handling
   const { adminPassword, adminPasswordConfirm, ...rest } = body as {
     adminPassword?: string;
     adminPasswordConfirm?: string;
@@ -31,12 +39,34 @@ export async function PUT(request: Request) {
     await setSetting(SETTING_KEYS.ADMIN_PASSWORD_HASH, hash);
   }
 
+  // If we're transitioning votingOpen from false → true, stamp the start time.
+  // This lets the timeline begin its bucket count from when voting was opened
+  // rather than the timestamp of the first vote.
+  const wasOpen = await isVotingOpen();
+
   for (const [key, value] of Object.entries(rest)) {
-    if (key === SETTING_KEYS.ADMIN_PASSWORD_HASH) continue; // never set directly
+    if (!ADMIN_WRITABLE_SETTINGS.has(key)) continue;
     if (typeof value === "string") {
       await setSetting(key, value);
     } else if (typeof value === "boolean") {
       await setSetting(key, value ? "true" : "false");
+    }
+  }
+
+  if (
+    Object.prototype.hasOwnProperty.call(rest, SETTING_KEYS.VOTING_OPEN) &&
+    rest[SETTING_KEYS.VOTING_OPEN] === true &&
+    !wasOpen
+  ) {
+    await setSetting(SETTING_KEYS.VOTING_OPENED_AT, new Date().toISOString());
+  }
+
+  // Start or stop the showcase simulator if the toggle was changed.
+  if (Object.prototype.hasOwnProperty.call(rest, SETTING_KEYS.SHOWCASE_MODE)) {
+    if (rest[SETTING_KEYS.SHOWCASE_MODE] === true) {
+      startShowcase();
+    } else {
+      stopShowcase();
     }
   }
 

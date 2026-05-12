@@ -25,11 +25,11 @@ Built originally for **QCFFPOLL.COM** — designed to be re-deployable for any s
 
 Requirements: Node.js 20+ and npm.
 
-```powershell
+```bash
 git clone https://github.com/Jason-Tucker/quiet-audience-voting.git
 cd quiet-audience-voting
 npm install
-Copy-Item .env.example .env.local
+cp .env.example .env.local
 npx prisma migrate dev --name init
 npx prisma db seed
 npm run dev
@@ -37,24 +37,43 @@ npm run dev
 
 Visit `http://localhost:3000` for the voting screen, `http://localhost:3000/admin` for the dashboard, `http://localhost:3000/results` for live results.
 
+### Common scripts
+
+| Command          | What it does                        |
+| ---------------- | ----------------------------------- |
+| `npm run dev`    | Next.js dev server                  |
+| `npm run build`  | Production build                    |
+| `npm run lint`   | ESLint (flat config), zero warnings |
+| `npm run format` | Prettier write                      |
+| `npm test`       | Vitest unit tests                   |
+| `npm run e2e`    | Playwright end-to-end tests         |
+
+## For coders & AI readers
+
+Start with [`CLAUDE.md`](CLAUDE.md) for a one-page map of conventions and
+the checklist for adding new routes/pages. Deeper structure lives in
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), decisions in
+[`docs/DECISIONS.md`](docs/DECISIONS.md), and contribution mechanics in
+[`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md).
+
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `DATABASE_URL` | SQLite file location. Local: `file:./prisma/dev.db`. Docker: `file:/app/data/prod.db`. |
-| `JWT_SECRET` | Random 32+ char string for signing admin JWTs. |
-| `INITIAL_ADMIN_PASSWORD` | Used for first admin login until you change it via the settings page. |
-| `NEXT_PUBLIC_APP_URL` | Public URL of the deployed site. |
+| Variable                 | Description                                                                            |
+| ------------------------ | -------------------------------------------------------------------------------------- |
+| `DATABASE_URL`           | SQLite file location. Local: `file:./prisma/dev.db`. Docker: `file:/app/data/prod.db`. |
+| `JWT_SECRET`             | Random 32+ char string for signing admin JWTs.                                         |
+| `INITIAL_ADMIN_PASSWORD` | Used for first admin login until you change it via the settings page.                  |
+| `NEXT_PUBLIC_APP_URL`    | Public URL of the deployed site.                                                       |
 
 ## Deployment
 
 Three environments wired through Git branches:
 
-| Environment | URL | Branch | Host |
-|-------------|-----|--------|------|
-| Local dev | `http://localhost:3000` | any | your machine |
-| Dev/staging | `https://dev.qcffpoll.com` | `dev` | Unraid Docker |
-| Production | `https://qcffpoll.com` | `main` | Ubuntu VPS |
+| Environment | URL                        | Branch | Host          |
+| ----------- | -------------------------- | ------ | ------------- |
+| Local dev   | `http://localhost:3000`    | any    | your machine  |
+| Dev/staging | `https://dev.qcffpoll.com` | `dev`  | Unraid Docker |
+| Production  | `https://qcffpoll.com`     | `main` | Ubuntu VPS    |
 
 Each push to `dev` or `main` triggers a GitHub Actions workflow that builds a Docker image and pushes it to GitHub Container Registry. [Watchtower](https://containrrr.dev/watchtower/) on each host polls GHCR every 5 minutes and auto-updates the running container. [Cloudflare Tunnel](https://www.cloudflare.com/products/tunnel/) exposes both hosts without port forwarding.
 

@@ -4,10 +4,22 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 
+// Reject anything that could navigate off-site post-login. Accept only
+// in-app paths starting with a single "/", and reject "//host" and any
+// scheme-bearing value (https:, javascript:, data:, etc.).
+function safeRedirect(raw: string | null): string {
+  const fallback = "/admin";
+  if (!raw) return fallback;
+  if (!raw.startsWith("/")) return fallback;
+  if (raw.startsWith("//")) return fallback;
+  if (raw.startsWith("/\\")) return fallback;
+  return raw;
+}
+
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const from = params.get("from") || "/admin";
+  const from = safeRedirect(params.get("from"));
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);

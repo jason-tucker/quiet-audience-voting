@@ -11,13 +11,42 @@ import { Spinner } from "@/components/ui/Spinner";
 
 type Phase = "loading" | "grid" | "expanded" | "thankyou" | "closed" | "empty";
 
+// Fisher-Yates shuffle. We re-shuffle every time the grid is shown to a new
+// voter so position bias (top-left, center, etc.) cannot influence outcomes.
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function sameFilmSet(a: Film[], b: Film[]): boolean {
+  if (a.length !== b.length) return false;
+  const ids = new Set(a.map((f) => f.id));
+  return b.every((f) => ids.has(f.id));
+}
+
+const HIGHLIGHT_MS = 6000;
+
 export default function VotingPage() {
   const [phase, setPhase] = useState<Phase>("loading");
   const [films, setFilms] = useState<Film[]>([]);
   const [selected, setSelected] = useState<Film | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [eventName, setEventName] = useState("Film Festival");
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const deviceInfoRef = useRef<DeviceInfo | null>(null);
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearHighlight = () => {
+    if (highlightTimerRef.current) {
+      clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = null;
+    }
+    setHighlightedId(null);
+  };
 
   // Initial load: status + films + device fingerprint
   useEffect(() => {
@@ -32,7 +61,7 @@ export default function VotingPage() {
         if (!mounted) return;
         deviceInfoRef.current = info;
         setEventName(statusRes.eventName);
-        setFilms(filmsRes.films);
+        setFilms(shuffle(filmsRes.films));
         if (!statusRes.votingOpen) setPhase("closed");
         else if (filmsRes.films.length === 0) setPhase("empty");
         else setPhase("grid");
@@ -45,7 +74,9 @@ export default function VotingPage() {
     };
   }, []);
 
-  // Poll status every 10s for open/close changes and new films
+  // Poll status every 10s for open/close changes and new films.
+  // Important: don't reshuffle the grid out from under a voter. We only
+  // replace the films list if the underlying set actually changed.
   useEffect(() => {
     const id = setInterval(async () => {
       try {
@@ -54,7 +85,7 @@ export default function VotingPage() {
           fetch("/api/films").then((r) => r.json() as Promise<{ films: Film[] }>),
         ]);
         setEventName(status.eventName);
-        setFilms(filmsRes.films);
+        setFilms((prev) => (sameFilmSet(prev, filmsRes.films) ? prev : shuffle(filmsRes.films)));
         setPhase((prev) => {
           if (prev === "expanded" || prev === "thankyou") return prev;
           if (!status.votingOpen) return "closed";
@@ -69,13 +100,24 @@ export default function VotingPage() {
   }, []);
 
   const handleSelect = (film: Film) => {
+    clearHighlight();
     setSelected(film);
     setPhase("expanded");
   };
 
   const handleCancel = () => {
+    // Don't reshuffle — keep the grid in place so the voter doesn't lose
+    // their bearings. Highlight the just-cancelled film with a white
+    // border so they can see what they tapped, in case they want to
+    // re-select it.
+    const cancelled = selected?.id ?? null;
     setSelected(null);
     setPhase("grid");
+    if (cancelled) {
+      setHighlightedId(cancelled);
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = setTimeout(() => setHighlightedId(null), HIGHLIGHT_MS);
+    }
   };
 
   const handleConfirm = async () => {
@@ -110,7 +152,9 @@ export default function VotingPage() {
   };
 
   const handleThankYouDone = () => {
+    clearHighlight();
     setSelected(null);
+    setFilms((prev) => shuffle(prev));
     setPhase("grid");
   };
 
@@ -135,7 +179,7 @@ export default function VotingPage() {
 
   return (
     <>
-      <VotingGrid films={films} onSelect={handleSelect} />
+      <VotingGrid films={films} onSelect={handleSelect} highlightedId={highlightedId} />
       {phase === "expanded" && selected && (
         <ExpandedFilmCard
           film={selected}

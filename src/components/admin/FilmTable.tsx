@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Film } from "@/types";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import { FilmForm } from "./FilmForm";
 
 export function FilmTable() {
@@ -10,6 +11,8 @@ export function FilmTable() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Film | null>(null);
   const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState<Film | null>(null);
+  const [deletingInFlight, setDeletingInFlight] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -26,11 +29,21 @@ export function FilmTable() {
     load();
   }, []);
 
-  const onDelete = async (film: Film) => {
-    if (!confirm(`Delete "${film.name}"? This will also delete all votes for this film.`)) return;
-    const res = await fetch(`/api/admin/films/${film.id}`, { method: "DELETE" });
-    if (res.ok) load();
-    else alert("Failed to delete");
+  const onConfirmDelete = async () => {
+    if (!deleting) return;
+    setDeletingInFlight(true);
+    try {
+      const res = await fetch(`/api/admin/films/${deleting.id}`, { method: "DELETE" });
+      if (res.ok) {
+        setDeleting(null);
+        await load();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error ?? "Failed to delete");
+      }
+    } finally {
+      setDeletingInFlight(false);
+    }
   };
 
   return (
@@ -54,7 +67,6 @@ export function FilmTable() {
                 <th className="p-3">Poster</th>
                 <th className="p-3">Name</th>
                 <th className="p-3">School</th>
-                <th className="p-3">Order</th>
                 <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -65,18 +77,17 @@ export function FilmTable() {
                     <img
                       src={film.posterUrl}
                       alt={film.name}
-                      className="h-14 w-10 rounded object-cover"
+                      className="h-14 w-10 rounded object-contain bg-zinc-800"
                     />
                   </td>
                   <td className="p-3 font-medium">{film.name}</td>
                   <td className="p-3 text-white/70">{film.school}</td>
-                  <td className="p-3 text-white/70">{film.displayOrder}</td>
                   <td className="p-3">
                     <div className="flex justify-end gap-2">
                       <Button size="sm" variant="secondary" onClick={() => setEditing(film)}>
                         Edit
                       </Button>
-                      <Button size="sm" variant="danger" onClick={() => onDelete(film)}>
+                      <Button size="sm" variant="danger" onClick={() => setDeleting(film)}>
                         Delete
                       </Button>
                     </div>
@@ -104,6 +115,23 @@ export function FilmTable() {
           film={editing}
         />
       )}
+
+      <Modal isOpen={!!deleting} onClose={() => setDeleting(null)} title="Delete film">
+        <div className="space-y-4">
+          <p className="text-sm text-white/70">
+            Permanently delete <span className="font-semibold text-white">{deleting?.name}</span>?
+            All votes for this film will also be deleted.
+          </p>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setDeleting(null)} disabled={deletingInFlight}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={onConfirmDelete} disabled={deletingInFlight}>
+              {deletingInFlight ? "Deleting…" : "Delete"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

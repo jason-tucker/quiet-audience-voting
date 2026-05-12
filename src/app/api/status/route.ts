@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
-import { isVotingOpen, getEventName } from "@/lib/settings";
+import { isVotingOpen, getEventName, getVotingOpenedAt } from "@/lib/settings";
 
 export async function GET() {
-  const [open, eventName] = await Promise.all([isVotingOpen(), getEventName()]);
-  return NextResponse.json({ votingOpen: open, eventName });
+  const [open, eventName, votingOpenedAt] = await Promise.all([
+    isVotingOpen(),
+    getEventName(),
+    getVotingOpenedAt(),
+  ]);
+  return NextResponse.json({ votingOpen: open, eventName, votingOpenedAt });
 }

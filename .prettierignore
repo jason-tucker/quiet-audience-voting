@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.claude/
+coverage/
+playwright-report/
+test-results/
+src/generated/
+package-lock.json
+prisma/migrations/

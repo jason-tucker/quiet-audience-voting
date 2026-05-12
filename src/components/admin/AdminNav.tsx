@@ -8,6 +8,7 @@ const links = [
   { href: "/admin/films", label: "Films" },
   { href: "/admin/devices", label: "Devices" },
   { href: "/admin/audit", label: "Audit Log" },
+  { href: "/admin/sessions", label: "Sessions" },
   { href: "/admin/settings", label: "Settings" },
 ];
 

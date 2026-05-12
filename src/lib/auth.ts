@@ -2,13 +2,23 @@ import { SignJWT, jwtVerify } from "jose";
 import type { NextRequest } from "next/server";
 
 const COOKIE_NAME = "qav_admin";
-const TOKEN_EXPIRY = "8h";
-const COOKIE_MAX_AGE = 60 * 60 * 8;
+// 1h TTL keeps the blast radius of a stolen/rotated-password token small.
+// Edge middleware can't hit the DB to do session-version invalidation, so
+// short-lived tokens are the practical way to bound exposure on this stack.
+const TOKEN_EXPIRY = "1h";
+const COOKIE_MAX_AGE = 60 * 60;
+
+const PLACEHOLDER_JWT_SECRET = "change-me-to-a-random-32-plus-char-string";
 
 function getSecretKey(): Uint8Array {
   const secret = process.env.JWT_SECRET;
   if (!secret || secret.length < 16) {
     throw new Error("JWT_SECRET environment variable is not set or too short");
+  }
+  if (secret === PLACEHOLDER_JWT_SECRET) {
+    throw new Error(
+      "JWT_SECRET is the .env.example placeholder. Set a real random value before starting the server.",
+    );
   }
   return new TextEncoder().encode(secret);
 }
