@@ -37,7 +37,10 @@ export function ExpandedFilmCard({ film, onConfirm, onCancel, submitting }: Prop
     };
   }, [submitting, onConfirm]);
 
-  const secondsLeft = Math.max(0, Math.ceil((AUTO_VOTE_MS - (progress / 100) * AUTO_VOTE_MS) / 1000));
+  const secondsLeft = Math.max(
+    0,
+    Math.ceil((AUTO_VOTE_MS - (progress / 100) * AUTO_VOTE_MS) / 1000),
+  );
 
   return (
     <div

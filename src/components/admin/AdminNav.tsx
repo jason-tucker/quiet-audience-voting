@@ -30,13 +30,16 @@ export function AdminNav() {
       </div>
       <nav className="flex flex-row gap-2 md:flex-col md:gap-1 overflow-x-auto md:overflow-visible">
         {links.map((l) => {
-          const active = pathname === l.href || (l.href !== "/admin" && pathname.startsWith(l.href));
+          const active =
+            pathname === l.href || (l.href !== "/admin" && pathname.startsWith(l.href));
           return (
             <Link
               key={l.href}
               href={l.href}
               className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                active ? "bg-blue-600 text-white" : "text-white/70 hover:bg-zinc-800 hover:text-white"
+                active
+                  ? "bg-blue-600 text-white"
+                  : "text-white/70 hover:bg-zinc-800 hover:text-white"
               }`}
             >
               {l.label}
@@ -45,10 +48,16 @@ export function AdminNav() {
         })}
       </nav>
       <div className="mt-8 border-t border-zinc-800 pt-4">
-        <Link href="/results" className="block rounded-lg px-3 py-2 text-sm text-white/70 hover:bg-zinc-800 hover:text-white">
+        <Link
+          href="/results"
+          className="block rounded-lg px-3 py-2 text-sm text-white/70 hover:bg-zinc-800 hover:text-white"
+        >
           ↗ View results
         </Link>
-        <Link href="/" className="block rounded-lg px-3 py-2 text-sm text-white/70 hover:bg-zinc-800 hover:text-white">
+        <Link
+          href="/"
+          className="block rounded-lg px-3 py-2 text-sm text-white/70 hover:bg-zinc-800 hover:text-white"
+        >
           ↗ View voting screen
         </Link>
         <button

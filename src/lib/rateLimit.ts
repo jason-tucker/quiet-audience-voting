@@ -21,11 +21,7 @@ export interface RateLimitResult {
   retryAfterSec: number;
 }
 
-export function checkRateLimit(
-  key: string,
-  max: number,
-  windowMs: number,
-): RateLimitResult {
+export function checkRateLimit(key: string, max: number, windowMs: number): RateLimitResult {
   const now = Date.now();
 
   // Lazy cleanup so a flood of unique keys can't grow the map without bound.

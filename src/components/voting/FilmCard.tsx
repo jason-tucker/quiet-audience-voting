@@ -15,9 +15,7 @@ export function FilmCard({
     <button
       onClick={onClick}
       className={`group relative h-full w-full overflow-hidden rounded-lg bg-zinc-800 transition-all active:scale-[0.98] ${
-        highlighted
-          ? "ring-4 ring-white/80 scale-[1.02]"
-          : "ring-0 ring-blue-500 active:ring-4"
+        highlighted ? "ring-4 ring-white/80 scale-[1.02]" : "ring-0 ring-blue-500 active:ring-4"
       }`}
     >
       <img

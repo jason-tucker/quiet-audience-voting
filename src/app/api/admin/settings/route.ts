@@ -33,7 +33,10 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Passwords do not match" }, { status: 400 });
     }
     if (adminPassword.length < 6) {
-      return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Password must be at least 6 characters" },
+        { status: 400 },
+      );
     }
     const hash = await bcrypt.hash(adminPassword, 12);
     await setSetting(SETTING_KEYS.ADMIN_PASSWORD_HASH, hash);

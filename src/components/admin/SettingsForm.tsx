@@ -64,7 +64,9 @@ export function SettingsForm() {
             onChange={(e) => setEventName(e.target.value)}
             className="w-full rounded-lg bg-zinc-800 px-3 py-2 text-white outline-none ring-1 ring-zinc-700 focus:ring-blue-500"
           />
-          <p className="mt-1 text-xs text-white/50">Shown on the closed-voting screen and the results page.</p>
+          <p className="mt-1 text-xs text-white/50">
+            Shown on the closed-voting screen and the results page.
+          </p>
         </div>
       </section>
 

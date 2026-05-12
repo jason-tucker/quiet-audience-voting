@@ -68,7 +68,9 @@ export function SuspiciousVotes() {
             >
               <div className="flex items-baseline justify-between">
                 <div>
-                  <p className="font-mono text-xs text-amber-300">{c.deviceFingerprint.slice(0, 16)}…</p>
+                  <p className="font-mono text-xs text-amber-300">
+                    {c.deviceFingerprint.slice(0, 16)}…
+                  </p>
                   <p className="mt-1 text-lg font-bold text-amber-100">
                     {c.voteCount} votes in window
                   </p>

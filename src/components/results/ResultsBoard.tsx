@@ -49,8 +49,7 @@ export function ResultsBoard({
 
   const dot =
     status === "live" ? "bg-green-500" : status === "stale" ? "bg-amber-500" : "bg-red-500";
-  const label =
-    status === "live" ? "Live" : status === "stale" ? "Reconnecting…" : "Disconnected";
+  const label = status === "live" ? "Live" : status === "stale" ? "Reconnecting…" : "Disconnected";
 
   return (
     <div className="mx-auto min-h-screen max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
@@ -84,20 +83,14 @@ export function ResultsBoard({
               />
               <span className="text-sm text-white/70">{label}</span>
             </div>
-            <p className="mt-0.5 text-xs text-white/40">
-              Last update: {formatAge(lastUpdateMs)}
-            </p>
+            <p className="mt-0.5 text-xs text-white/40">Last update: {formatAge(lastUpdateMs)}</p>
           </div>
         </div>
       </header>
 
       {votingOpenedAt && films.length > 0 && (
         <section className="mb-6">
-          <ResultsTimeline
-            films={films}
-            votingOpenedAt={votingOpenedAt}
-            events={voteEvents}
-          />
+          <ResultsTimeline films={films} votingOpenedAt={votingOpenedAt} events={voteEvents} />
         </section>
       )}
 
@@ -118,9 +111,7 @@ export function ResultsBoard({
         ))}
       </section>
 
-      {films.length === 0 && (
-        <p className="py-12 text-center text-white/50">No films yet.</p>
-      )}
+      {films.length === 0 && <p className="py-12 text-center text-white/50">No films yet.</p>}
 
       {selected && (
         <FilmTimelineModal
