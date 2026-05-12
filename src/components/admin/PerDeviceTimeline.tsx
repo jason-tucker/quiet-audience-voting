@@ -42,7 +42,12 @@ interface Bucket {
   [k: string]: number | string;
 }
 
-function bucketize(votes: DetailedVote[], devices: string[], startMs: number, endMs: number): Bucket[] {
+function bucketize(
+  votes: DetailedVote[],
+  devices: string[],
+  startMs: number,
+  endMs: number,
+): Bucket[] {
   const bucketMs = BUCKET_SECONDS * 1000;
   const buckets: Bucket[] = [];
   for (let t = startMs; t <= endMs + bucketMs; t += bucketMs) {
