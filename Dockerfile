@@ -34,9 +34,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Prisma artifacts and migration files
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-# Prisma CLI is needed for `migrate deploy` at startup
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
+# Prisma CLI is needed for `migrate deploy` at startup. Install fresh so its
+# transitive runtime deps (@prisma/config → effect, c12, deepmerge-ts,
+# empathic) come with it — copying just node_modules/prisma from the builder
+# misses them.
+RUN npm install prisma@^6.1.0 --omit=dev --no-audit --no-fund
 
 RUN mkdir -p /app/data /app/uploads && chown -R nextjs:nodejs /app/data /app/uploads
 
