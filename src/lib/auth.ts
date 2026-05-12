@@ -44,14 +44,20 @@ export function getTokenFromRequest(request: NextRequest): string | null {
   return request.cookies.get(COOKIE_NAME)?.value ?? null;
 }
 
+// Default-on in production. Set SECURE_COOKIE=false to allow the auth
+// cookie to flow over plain HTTP (e.g. an IP-only test VPS on :80).
+// This lowers the security posture: only use it for non-production.
+function secureFlag(): string {
+  if (process.env.SECURE_COOKIE === "false") return "";
+  return process.env.NODE_ENV === "production" ? "; Secure" : "";
+}
+
 export function buildAuthCookie(token: string): string {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
-  return `${COOKIE_NAME}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${COOKIE_MAX_AGE}${secure}`;
+  return `${COOKIE_NAME}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${COOKIE_MAX_AGE}${secureFlag()}`;
 }
 
 export function buildClearCookie(): string {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
-  return `${COOKIE_NAME}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${secure}`;
+  return `${COOKIE_NAME}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${secureFlag()}`;
 }
 
 export const AUTH_COOKIE_NAME = COOKIE_NAME;
