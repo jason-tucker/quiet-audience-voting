@@ -83,6 +83,10 @@ See the [Wiki](https://github.com/Jason-Tucker/quiet-audience-voting/wiki) for d
 
 If a container is crash-looping or you've been paged, start with the [Troubleshooting & Incidents](https://github.com/Jason-Tucker/quiet-audience-voting/wiki/Troubleshooting-and-Incidents) wiki page — it has a chronological log of every production failure we've seen, including symptom strings to grep for, root cause, and the exact fix command.
 
+## Roadmap
+
+Features under consideration but not yet shipped are catalogued in the [Roadmap wiki page](https://github.com/Jason-Tucker/quiet-audience-voting/wiki/Roadmap) and tracked on the [QAV Feature Roadmap project board](https://github.com/users/jason-tucker/projects). Each row has a matching `[U#]` / `[Q#]` / `[O#]` issue with status, design notes, and PRs.
+
 ## Workflow
 
 ```

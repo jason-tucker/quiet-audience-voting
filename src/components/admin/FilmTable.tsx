@@ -5,12 +5,14 @@ import type { Film } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { FilmForm } from "./FilmForm";
+import { BulkFilmImport } from "./BulkFilmImport";
 
 export function FilmTable() {
   const [films, setFilms] = useState<Film[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Film | null>(null);
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [deleting, setDeleting] = useState<Film | null>(null);
   const [deletingInFlight, setDeletingInFlight] = useState(false);
 
@@ -50,7 +52,12 @@ export function FilmTable() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-white">Films</h2>
-        <Button onClick={() => setCreating(true)}>+ Add film</Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setImporting(true)}>
+            Bulk import…
+          </Button>
+          <Button onClick={() => setCreating(true)}>+ Add film</Button>
+        </div>
       </div>
 
       {loading ? (
@@ -100,6 +107,13 @@ export function FilmTable() {
       )}
 
       {creating && <FilmForm isOpen={creating} onClose={() => setCreating(false)} onSaved={load} />}
+      {importing && (
+        <BulkFilmImport
+          isOpen={importing}
+          onClose={() => setImporting(false)}
+          onImported={load}
+        />
+      )}
       {editing && (
         <FilmForm
           key={editing.id}
