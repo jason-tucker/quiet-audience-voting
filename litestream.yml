@@ -1,0 +1,32 @@
+# Litestream config — continuous SQLite backup.
+#
+# This file shapes the example single-DB deployment shipped with the repo.
+# The production VPS uses a slightly different file (under /opt/qav/) that
+# replicates BOTH the prod (:latest) and dev (:dev) databases.
+#
+# What this does
+#   Tails the SQLite WAL for /data/prod.db, ships incremental segments to a
+#   replica destination, and takes a full snapshot every 1h. Retention is
+#   168h (7 days), after which the oldest snapshots roll off.
+#
+# Where the replicas land
+#   By default: a local volume (/backups) mounted inside the sidecar. That
+#   defends against an accidental `docker compose down -v`, volume corruption,
+#   or a bad migration — but NOT against losing the VPS itself.
+#
+#   For off-VPS protection, change `type: file` to `type: s3` and set:
+#     LITESTREAM_ACCESS_KEY_ID
+#     LITESTREAM_SECRET_ACCESS_KEY
+#     LITESTREAM_BUCKET
+#     LITESTREAM_ENDPOINT   (e.g. https://<account-id>.r2.cloudflarestorage.com for R2)
+#
+# Restore procedure
+#   See wiki/Deployment-and-Operations.md.
+
+dbs:
+  - path: /data/prod.db
+    replicas:
+      - type: file
+        path: /backups/prod
+        retention: 168h
+        snapshot-interval: 1h
