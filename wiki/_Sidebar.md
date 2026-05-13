@@ -7,4 +7,5 @@
 - [Voter & Showcase Flow](Voter-and-Showcase-Flow)
 - [Deployment & Operations](Deployment-and-Operations)
 - [Troubleshooting & Incidents](Troubleshooting-and-Incidents)
+- [Roadmap](Roadmap)
 - [Contributing & Conventions](Contributing-and-Conventions)
