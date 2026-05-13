@@ -21,8 +21,9 @@ data/
 prisma/dev.db
 prisma/dev.db-journal
 
-# Uploads
-uploads/
+# Uploads — only the runtime data dir at the repo root, not the
+# src/app/uploads/ route handler.
+/uploads/
 
 # Logs
 *.log
