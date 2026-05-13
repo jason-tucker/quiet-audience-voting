@@ -94,7 +94,8 @@ export default function NotFound() {
           aria-hidden
         />
         {status === "checking" && "Checking…"}
-        {status === "service-down" && `Service unreachable. Retrying every 3s (${secondsWaiting}s)…`}
+        {status === "service-down" &&
+          `Service unreachable. Retrying every 3s (${secondsWaiting}s)…`}
         {status === "page-missing" &&
           `Service is up but this page doesn't exist. Still watching (${secondsWaiting}s)…`}
       </div>

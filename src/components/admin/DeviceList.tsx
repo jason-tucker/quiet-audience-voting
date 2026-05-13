@@ -164,9 +164,7 @@ export function DeviceList() {
                 return (
                   <Fragment key={d.fingerprint}>
                     <tr
-                      onClick={() =>
-                        setExpanded(expanded === d.fingerprint ? null : d.fingerprint)
-                      }
+                      onClick={() => setExpanded(expanded === d.fingerprint ? null : d.fingerprint)}
                       className="cursor-pointer hover:bg-zinc-900"
                     >
                       <td className="p-3">
@@ -186,7 +184,9 @@ export function DeviceList() {
                       </td>
                       <td className="p-3 font-mono text-xs">{shortFingerprint(d.fingerprint)}…</td>
                       <td className="p-3 font-semibold">{d.voteCount}</td>
-                      <td className="p-3 text-white/70">{new Date(d.firstSeen).toLocaleString()}</td>
+                      <td className="p-3 text-white/70">
+                        {new Date(d.firstSeen).toLocaleString()}
+                      </td>
                       <td className="p-3 text-white/70">{new Date(d.lastSeen).toLocaleString()}</td>
                       <td className="p-3 text-white/70">{d.platform ?? "—"}</td>
                       <td className="p-3 font-mono text-xs text-white/70">{d.ipAddress}</td>
@@ -214,7 +214,9 @@ export function DeviceList() {
                               <p className="font-mono text-white/60">{d.fingerprint}</p>
                             </div>
                             <div>
-                              <p className="font-semibold text-white/80">Vote distribution by film</p>
+                              <p className="font-semibold text-white/80">
+                                Vote distribution by film
+                              </p>
                               <div className="mt-2">
                                 <DeviceFilmBreakdown films={films} filmCounts={d.votesByFilm} />
                               </div>
@@ -275,9 +277,10 @@ export function DeviceList() {
       >
         <div className="space-y-4">
           <p className="text-sm text-white/70">
-            Remove the profile <span className="font-semibold text-white">{removeTarget?.label}</span>?
-            Devices matching it will go back to being flagged as &quot;Weird&quot; until you trust
-            another one.
+            Remove the profile{" "}
+            <span className="font-semibold text-white">{removeTarget?.label}</span>? Devices
+            matching it will go back to being flagged as &quot;Weird&quot; until you trust another
+            one.
           </p>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" onClick={() => setRemoveTarget(null)}>

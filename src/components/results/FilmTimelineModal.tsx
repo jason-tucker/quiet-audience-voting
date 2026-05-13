@@ -32,9 +32,7 @@ function bucketize(events: VoteEvent[], startIso: string | null): Bucket[] {
   if (events.length === 0 && !startIso) return [];
 
   const sorted = [...events].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-  const start = startIso
-    ? new Date(startIso).getTime()
-    : new Date(sorted[0].timestamp).getTime();
+  const start = startIso ? new Date(startIso).getTime() : new Date(sorted[0].timestamp).getTime();
   const end = sorted.length > 0 ? new Date(sorted[sorted.length - 1].timestamp).getTime() : start;
   const bucketMs = BUCKET_SECONDS * 1000;
   const buckets: Bucket[] = [];
@@ -63,10 +61,7 @@ export function FilmTimelineModal({ film, onClose, votingOpenedAt, events }: Pro
     () => events.filter((e) => e.filmId === film.filmId),
     [events, film.filmId],
   );
-  const data = useMemo(
-    () => bucketize(filmEvents, votingOpenedAt),
-    [filmEvents, votingOpenedAt],
-  );
+  const data = useMemo(() => bucketize(filmEvents, votingOpenedAt), [filmEvents, votingOpenedAt]);
   const filmColor = colorForFilm(film.filmId);
 
   return (

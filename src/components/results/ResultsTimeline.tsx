@@ -22,7 +22,12 @@ interface Bucket {
   [k: string]: number | string;
 }
 
-function bucketize(events: VoteEvent[], films: VoteResult[], startMs: number, endMs: number): Bucket[] {
+function bucketize(
+  events: VoteEvent[],
+  films: VoteResult[],
+  startMs: number,
+  endMs: number,
+): Bucket[] {
   const bucketMs = BUCKET_SECONDS * 1000;
   const buckets: Bucket[] = [];
   const running: Record<string, number> = {};
@@ -154,8 +159,7 @@ export function ResultsTimeline({
                     ? [...films].sort((a, b) => {
                         const last = data[data.length - 1] as Record<string, number>;
                         return (
-                          (last[`${a.filmId}__total`] ?? 0) -
-                          (last[`${b.filmId}__total`] ?? 0)
+                          (last[`${a.filmId}__total`] ?? 0) - (last[`${b.filmId}__total`] ?? 0)
                         );
                       })
                     : films;
