@@ -146,6 +146,14 @@ Full vote audit log as a downloadable file. Streams the dataset in 500-row chunk
 - **Query** — `format=csv|json` (default `csv`), `filmId?` to scope to one film.
 - **Response** — `text/csv` or `application/json` with `Content-Disposition: attachment; filename="qav-votes-<timestamp>.<ext>"`.
 
+### `GET /api/admin/auth-events`
+
+Paginated list of admin login attempts (both successes and failures). Surfaced in the `/admin/audit` page's "Admin logins" tab.
+
+- **Query** — `outcome?` (`success` | `fail`), `page?` (default 1), `limit?` (default 50, max 500).
+- **Response** — `{ total, page, limit, events: [{ id, timestamp, outcome, ipAddress, userAgent, reason }, …] }`.
+- **Retention** — last 1000 rows; older are pruned on write.
+
 ### `GET /api/admin/votes-detailed`
 
 Slim timeline (`id, filmId, timestamp, deviceFingerprint`) suitable for charts.
