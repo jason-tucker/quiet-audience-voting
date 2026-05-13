@@ -35,16 +35,21 @@ export async function GET() {
     errors.push(`database: ${msg}`);
   }
 
-  // Migrations applied? We rely on the same Setting rows the seed inserts —
-  // their existence implies migrations ran AND the seed has happened. If the
-  // table itself is missing, the Prisma call throws and we surface that.
+  // Migrations applied? Query Prisma's own `_prisma_migrations` ledger. A row
+  // for every migration in `prisma/migrations/` means `migrate deploy` ran.
+  // We don't infer from app tables (e.g. Setting) because those legitimately
+  // start empty on a fresh deployment and only get populated lazily by
+  // application code (admin login writes the first password hash, etc.).
   try {
-    const count = await prisma.setting.count();
-    if (count === 0) {
-      checks.migrations = { ok: false, detail: "Setting table empty (seed not applied?)" };
-      errors.push("migrations: Setting table empty");
+    const rows = await prisma.$queryRaw<{ c: bigint }[]>`
+      SELECT COUNT(*) AS c FROM _prisma_migrations WHERE finished_at IS NOT NULL
+    `;
+    const applied = Number(rows[0]?.c ?? 0);
+    if (applied === 0) {
+      checks.migrations = { ok: false, detail: "_prisma_migrations is empty" };
+      errors.push("migrations: _prisma_migrations is empty");
     } else {
-      checks.migrations = { ok: true };
+      checks.migrations = { ok: true, detail: `${applied} applied` };
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
