@@ -96,6 +96,14 @@ Create a film.
 
 - **Body** — `FilmInputSchema`: `{ name, school, posterUrl }` (all 1–2000 chars).
 
+### `POST /api/admin/films/bulk`
+
+Create up to 500 films in one transactional call.
+
+- **Body** — `FilmBulkInputSchema`: `{ films: FilmInput[] }` (1–500 entries).
+- **Response** — `{ created: number, films: Film[] }`. Either all rows insert or none do.
+- **Errors** — `400` validation (with per-row `issues` array on Zod failures).
+
 ### `PUT /api/admin/films/[id]`
 
 Patch a film.
