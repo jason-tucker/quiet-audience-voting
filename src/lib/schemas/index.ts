@@ -48,6 +48,17 @@ export const FilmPatchSchema = FilmInputSchema.partial();
 /** Static type for {@link FilmPatchSchema}. */
 export type FilmPatch = z.infer<typeof FilmPatchSchema>;
 
+/**
+ * Request body for `POST /api/admin/films/bulk` — admin CSV-style import.
+ * Capped at 500 rows per request so a single call can't exhaust the
+ * 100 MB Cloudflare tunnel cap.
+ */
+export const FilmBulkInputSchema = z.object({
+  films: z.array(FilmInputSchema).min(1).max(500),
+});
+/** Static type for {@link FilmBulkInputSchema}. */
+export type FilmBulkInput = z.infer<typeof FilmBulkInputSchema>;
+
 /** Request body for `POST /api/login`. */
 export const LoginInputSchema = z.object({
   password: z.string().min(1).max(200),
