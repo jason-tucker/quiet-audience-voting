@@ -5,6 +5,7 @@ import { getSetting, setSetting, SETTING_KEYS } from "@/lib/settings";
 import { signAdminToken, buildAuthCookie } from "@/lib/auth";
 import { getClientIp } from "@/lib/device";
 import { checkRateLimit, clearRateLimit } from "@/lib/rateLimit";
+import { recordAuthEvent } from "@/lib/authEvents";
 
 const PLACEHOLDER_INITIAL_PASSWORD = "changeme";
 
@@ -30,7 +31,15 @@ function sameOrigin(request: NextRequest): boolean {
 }
 
 export async function POST(request: NextRequest) {
+  const userAgent = request.headers.get("user-agent") ?? null;
+
   if (!sameOrigin(request)) {
+    await recordAuthEvent({
+      outcome: "fail",
+      ipAddress: getClientIp(request),
+      userAgent,
+      reason: "bad_origin",
+    });
     return NextResponse.json({ error: "Invalid request origin" }, { status: 403 });
   }
 
@@ -38,6 +47,12 @@ export async function POST(request: NextRequest) {
   const limitKey = `login:${ip}`;
   const limit = checkRateLimit(limitKey, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MS);
   if (!limit.ok) {
+    await recordAuthEvent({
+      outcome: "fail",
+      ipAddress: ip,
+      userAgent,
+      reason: "rate_limited",
+    });
     return NextResponse.json(
       { error: "Too many attempts. Try again later." },
       {
@@ -70,6 +85,12 @@ export async function POST(request: NextRequest) {
       console.error(
         "Refusing to bootstrap admin login: INITIAL_ADMIN_PASSWORD is unset or still the .env.example placeholder.",
       );
+      await recordAuthEvent({
+        outcome: "fail",
+        ipAddress: ip,
+        userAgent,
+        reason: "server_misconfigured",
+      });
       return NextResponse.json(
         { error: "Server is not configured. Contact the administrator." },
         { status: 500 },
@@ -83,10 +104,22 @@ export async function POST(request: NextRequest) {
   }
 
   if (!valid) {
+    await recordAuthEvent({
+      outcome: "fail",
+      ipAddress: ip,
+      userAgent,
+      reason: "bad_password",
+    });
     return NextResponse.json({ error: "Invalid password" }, { status: 401 });
   }
 
   clearRateLimit(limitKey);
+  await recordAuthEvent({
+    outcome: "success",
+    ipAddress: ip,
+    userAgent,
+    reason: null,
+  });
 
   const token = await signAdminToken();
   const response = NextResponse.json({ success: true });
