@@ -1,0 +1,42 @@
+# Dependabot configuration.
+#
+# Strategy:
+#   - npm: weekly, group minor+patch into one PR to cut noise; majors get
+#     their own PR so they can be reviewed individually.
+#   - docker: weekly (catches base-image security updates on node:20-alpine).
+#   - github-actions: weekly (keeps deploy-main.yml / deploy-dev.yml actions
+#     current).
+#
+# Open PR cap of 5 per ecosystem so Dependabot can't flood the dashboard.
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    labels:
+      - "dependencies"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 2
+    labels:
+      - "dependencies"
+      - "docker"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 2
+    labels:
+      - "dependencies"
+      - "ci"
