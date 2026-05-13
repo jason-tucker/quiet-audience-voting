@@ -99,13 +99,7 @@ export function FilmTable() {
         </div>
       )}
 
-      {creating && (
-        <FilmForm
-          isOpen={creating}
-          onClose={() => setCreating(false)}
-          onSaved={load}
-        />
-      )}
+      {creating && <FilmForm isOpen={creating} onClose={() => setCreating(false)} onSaved={load} />}
       {editing && (
         <FilmForm
           key={editing.id}

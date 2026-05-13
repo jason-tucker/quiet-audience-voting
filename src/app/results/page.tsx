@@ -136,6 +136,7 @@ export default function ResultsPage() {
     return () => {
       if (esRef.current) esRef.current.close();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

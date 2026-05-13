@@ -24,12 +24,7 @@ interface Bucket {
   [filmKey: string]: number | string;
 }
 
-function bucketize(
-  votes: AuditVote[],
-  films: Film[],
-  startMs: number,
-  endMs: number,
-): Bucket[] {
+function bucketize(votes: AuditVote[], films: Film[], startMs: number, endMs: number): Bucket[] {
   const bucketMs = BUCKET_SECONDS * 1000;
   const buckets: Bucket[] = [];
   // Running total per film, accumulated across buckets so the tooltip can
@@ -156,9 +151,7 @@ export function VoteTimeline() {
     <div className="rounded-xl bg-zinc-900 p-6 ring-1 ring-zinc-800">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-white">
-            Vote Timeline (30-second buckets)
-          </h3>
+          <h3 className="text-lg font-semibold text-white">Vote Timeline (30-second buckets)</h3>
           <p className="text-xs text-white/50">
             Stacked by film. Started at {new Date(status.votingOpenedAt).toLocaleString()}.
           </p>

@@ -19,9 +19,7 @@ export async function saveUploadedBuffer(
   mimeType: string,
 ): Promise<{ url: string }> {
   if (!ALLOWED_MIME.has(mimeType)) {
-    throw new Error(
-      `Unsupported file type: ${mimeType}. Allowed: jpg, png, webp, gif.`,
-    );
+    throw new Error(`Unsupported file type: ${mimeType}. Allowed: jpg, png, webp, gif.`);
   }
   if (buffer.length > MAX_FILE_BYTES) {
     throw new Error(`File too large (max ${formatBytes(MAX_FILE_BYTES)})`);

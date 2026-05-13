@@ -19,4 +19,5 @@ All notable changes to this project are documented here. The format is based on 
 - Three-environment deployment model: local → Unraid (dev branch) → Ubuntu VPS (main branch)
 
 ### Changed
+
 - Removed the per-film display order field; the voting grid is randomized so an explicit order is no longer meaningful

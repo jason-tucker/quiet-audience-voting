@@ -144,7 +144,11 @@ export function Sessions() {
         )}
       </section>
 
-      <Modal isOpen={resetOpen} onClose={() => setResetOpen(false)} title="End session and reset votes">
+      <Modal
+        isOpen={resetOpen}
+        onClose={() => setResetOpen(false)}
+        title="End session and reset votes"
+      >
         <div className="space-y-4">
           <p className="text-sm text-white/70">
             This will save a snapshot of the current{" "}
@@ -165,7 +169,11 @@ export function Sessions() {
             <Button variant="ghost" onClick={() => setResetOpen(false)} disabled={resetting}>
               Cancel
             </Button>
-            <Button variant="danger" onClick={submitReset} disabled={resetting || !resetLabel.trim()}>
+            <Button
+              variant="danger"
+              onClick={submitReset}
+              disabled={resetting || !resetLabel.trim()}
+            >
               {resetting ? "Saving snapshot…" : "End session"}
             </Button>
           </div>
