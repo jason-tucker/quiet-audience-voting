@@ -6,7 +6,48 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Gate the image push behind lint + build + unit tests. If any fails we stop
+  # before the image build, so `:latest` is never advanced past a known-bad
+  # commit. See roadmap O5 (#24).
+  verify:
+    name: Lint, build, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prisma generate
+        # next build imports from @prisma/client and the generated client is
+        # not in git; without this, the build step fails before lint runs.
+        run: npx prisma generate
+
+      - name: Lint (zero warnings)
+        run: npm run lint
+
+      - name: Build (Next.js standalone output)
+        run: npm run build
+        env:
+          # CI doesn't migrate or seed; the build only type-checks handlers.
+          DATABASE_URL: "file:./prisma/ci.db"
+          JWT_SECRET: "ci-placeholder-not-used-at-runtime-${{ github.sha }}"
+          NEXT_TELEMETRY_DISABLED: "1"
+
+      - name: Unit tests
+        run: npm test
+
   build-push:
+    name: Build, Push & Deploy
+    needs: verify
     runs-on: ubuntu-latest
     permissions:
       contents: read
