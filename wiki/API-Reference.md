@@ -44,6 +44,19 @@ Public app status used by the voting page and admin nav.
 
 - **Response** — `{ votingOpen: boolean, eventName: string }`.
 
+### `GET /api/health`
+
+Operational health probe — used by uptime monitors, Watchtower, and on-call when something looks wrong. Distinct from `/api/status` (which is the lightweight "what is voting state" feed for the voter UI).
+
+- **Auth** — none. Safe to expose publicly; reveals no secrets.
+- **Response** — `{ ok: boolean, checks: { database, migrations, uploads_writable, disk }, errors?: string[] }`. Each check has `{ ok: boolean, detail?: string }`.
+- **Status** — `200` when every check passes, `503` on any failure. Shape stays identical in both directions so a probe can grep `"ok":false` without branching on status.
+- **What it checks**
+  - `database` — `SELECT 1` round-trip via Prisma.
+  - `migrations` — at least one row in `Setting` (proxy: migrations + seed both ran).
+  - `uploads_writable` — `/app/uploads` writable.
+  - `disk` — > 5% free on the uploads volume (soft check; reports a warning if `statfs` isn't available rather than failing).
+
 ### `POST /api/upload-poster`
 
 Multipart image upload for posters. Admin-only — bypasses middleware (which strips bodies) by verifying the JWT directly in the handler.

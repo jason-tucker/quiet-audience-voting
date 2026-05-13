@@ -17,6 +17,7 @@ When you ship a release, move the contents of `[DEV]` under a new `[X.Y.Z] — Y
 ### Added
 
 - **Litestream sidecar for continuous SQLite backup.** The shipped `docker-compose.yml` now runs a `litestream/litestream:0.3.13` container that tails `/app/data/prod.db`'s WAL and writes incremental segments + hourly snapshots to a new `qav_backups` volume. Default retention 7 days; the file replica defends against `docker compose down -v` and volume corruption, and a one-line edit of `litestream.yml` swaps to an S3-compatible bucket (Cloudflare R2, B2, S3) for off-VPS protection. Restore drill is documented in [Deployment & Operations → Backups](https://github.com/jason-tucker/quiet-audience-voting/wiki/Deployment-and-Operations#backups). Closes #22 (roadmap item O1).
+- **`GET /api/health` — real operational health endpoint** (#23, roadmap O3). Returns `{ ok, checks: { database, migrations, uploads_writable, disk } }` with 200 when every check passes and 503 on any failure. The shape stays the same in both directions so a probe can grep `"ok":false` without branching on status code. `/api/status` keeps its existing lightweight role for the voter UI. Wired into the e2e smoke suite.
 
 ### Fixed
 
