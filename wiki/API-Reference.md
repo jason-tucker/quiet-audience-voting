@@ -139,6 +139,13 @@ Audit-grade vote list.
 - **Query** — `filmId?`, `limit?` (default 50, max 500), `offset?`.
 - **Response** — full vote rows including `rawDeviceJson`.
 
+### `GET /api/admin/votes/export`
+
+Full vote audit log as a downloadable file. Streams the dataset in 500-row chunks so it scales to 200k+ rows without blowing memory.
+
+- **Query** — `format=csv|json` (default `csv`), `filmId?` to scope to one film.
+- **Response** — `text/csv` or `application/json` with `Content-Disposition: attachment; filename="qav-votes-<timestamp>.<ext>"`.
+
 ### `GET /api/admin/votes-detailed`
 
 Slim timeline (`id, filmId, timestamp, deviceFingerprint`) suitable for charts.
