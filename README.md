@@ -79,6 +79,10 @@ Each push to `dev` or `main` triggers a GitHub Actions workflow that builds a Do
 
 See the [Wiki](https://github.com/Jason-Tucker/quiet-audience-voting/wiki) for detailed setup guides for Unraid, the Ubuntu VPS, Cloudflare Tunnel, and Watchtower.
 
+### Troubleshooting
+
+If a container is crash-looping or you've been paged, start with the [Troubleshooting & Incidents](https://github.com/Jason-Tucker/quiet-audience-voting/wiki/Troubleshooting-and-Incidents) wiki page — it has a chronological log of every production failure we've seen, including symptom strings to grep for, root cause, and the exact fix command.
+
 ## Workflow
 
 ```

@@ -34,6 +34,10 @@ services:
       WATCHTOWER_POLL_INTERVAL: "300"
       REPO_USER: "${GHCR_USER}"
       REPO_PASS: "${GHCR_TOKEN}"
+      # containrrr/watchtower:latest ships a Docker client locked to API
+      # v1.25; modern daemons (Docker 20.10+, API >=1.40) refuse it. Pin a
+      # supported version so Watchtower can talk to the daemon. See #7.
+      DOCKER_API_VERSION: "1.45"
 
 volumes:
   qav_data:
