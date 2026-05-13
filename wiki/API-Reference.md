@@ -44,6 +44,19 @@ Public app status used by the voting page and admin nav.
 
 - **Response** — `{ votingOpen: boolean, eventName: string }`.
 
+### `GET /api/health`
+
+Operational health probe — used by uptime monitors, Watchtower, and on-call when something looks wrong. Distinct from `/api/status` (which is the lightweight "what is voting state" feed for the voter UI).
+
+- **Auth** — none. Safe to expose publicly; reveals no secrets.
+- **Response** — `{ ok: boolean, checks: { database, migrations, uploads_writable, disk }, errors?: string[] }`. Each check has `{ ok: boolean, detail?: string }`.
+- **Status** — `200` when every check passes, `503` on any failure. Shape stays identical in both directions so a probe can grep `"ok":false` without branching on status.
+- **What it checks**
+  - `database` — `SELECT 1` round-trip via Prisma.
+  - `migrations` — at least one row in `Setting` (proxy: migrations + seed both ran).
+  - `uploads_writable` — `/app/uploads` writable.
+  - `disk` — > 5% free on the uploads volume (soft check; reports a warning if `statfs` isn't available rather than failing).
+
 ### `POST /api/upload-poster`
 
 Multipart image upload for posters. Admin-only — bypasses middleware (which strips bodies) by verifying the JWT directly in the handler.
@@ -82,6 +95,14 @@ All require a valid `qav_admin` JWT. Middleware enforces this; the response on f
 Create a film.
 
 - **Body** — `FilmInputSchema`: `{ name, school, posterUrl }` (all 1–2000 chars).
+
+### `POST /api/admin/films/bulk`
+
+Create up to 500 films in one transactional call.
+
+- **Body** — `FilmBulkInputSchema`: `{ films: FilmInput[] }` (1–500 entries).
+- **Response** — `{ created: number, films: Film[] }`. Either all rows insert or none do.
+- **Errors** — `400` validation (with per-row `issues` array on Zod failures).
 
 ### `PUT /api/admin/films/[id]`
 
@@ -125,6 +146,21 @@ Audit-grade vote list.
 
 - **Query** — `filmId?`, `limit?` (default 50, max 500), `offset?`.
 - **Response** — full vote rows including `rawDeviceJson`.
+
+### `GET /api/admin/votes/export`
+
+Full vote audit log as a downloadable file. Streams the dataset in 500-row chunks so it scales to 200k+ rows without blowing memory.
+
+- **Query** — `format=csv|json` (default `csv`), `filmId?` to scope to one film.
+- **Response** — `text/csv` or `application/json` with `Content-Disposition: attachment; filename="qav-votes-<timestamp>.<ext>"`.
+
+### `GET /api/admin/auth-events`
+
+Paginated list of admin login attempts (both successes and failures). Surfaced in the `/admin/audit` page's "Admin logins" tab.
+
+- **Query** — `outcome?` (`success` | `fail`), `page?` (default 1), `limit?` (default 50, max 500).
+- **Response** — `{ total, page, limit, events: [{ id, timestamp, outcome, ipAddress, userAgent, reason }, …] }`.
+- **Retention** — last 1000 rows; older are pruned on write.
 
 ### `GET /api/admin/votes-detailed`
 

@@ -34,11 +34,21 @@ export function AuditLog() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-white/60">
           {total} total {total === 1 ? "vote" : "votes"} • page {page} of {totalPages}
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <a href="/api/admin/votes/export?format=csv" download>
+            <Button size="sm" variant="secondary">
+              Export CSV
+            </Button>
+          </a>
+          <a href="/api/admin/votes/export?format=json" download>
+            <Button size="sm" variant="secondary">
+              Export JSON
+            </Button>
+          </a>
           <Button
             size="sm"
             variant="secondary"

@@ -79,3 +79,22 @@ model VoteSnapshot {
   // JSON-serialized array of { filmId, filmName, school, posterUrl, count, percentage }
   filmResults   String
 }
+
+// Admin authentication events — every login attempt (success or fail) gets
+// a row so the audit log isn't vote-only. Pruned to the last 1000 rows on
+// write to keep SQLite small. See roadmap Q3 (#25).
+model AuthEvent {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  // "success" | "fail" — kept as a free string so adding new outcomes
+  // (e.g. "rate_limited", "origin_rejected") doesn't need a migration.
+  outcome   String
+  ipAddress String?
+  userAgent String?
+  // Free-text reason on failure (e.g. "bad_password", "rate_limited",
+  // "bad_origin", "server_misconfigured"). Null on success.
+  reason    String?
+
+  @@index([timestamp])
+  @@index([outcome])
+}

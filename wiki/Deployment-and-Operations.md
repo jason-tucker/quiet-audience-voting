@@ -66,7 +66,55 @@ The two state directories are:
 - `/app/data` — SQLite database (`prod.db`, plus WAL/SHM files when in use).
 - `/app/uploads` — poster image files referenced by `Film.posterUrl`.
 
-Back up both together. SQLite is safe to copy while running if you use `sqlite3 prod.db ".backup '/path/to/backup.db'"`; a plain `cp` may race with WAL writes.
+### Automated continuous backup (litestream)
+
+The shipped `docker-compose.yml` runs a `litestream` sidecar that tails the SQLite WAL and ships incremental segments + hourly snapshots to a separate volume (`qav_backups`). Retention is 7 days by default; older snapshots roll off.
+
+This protects against:
+
+- Accidental `docker compose down -v` (the backup volume survives).
+- Volume corruption from a bad migration.
+- Migration regressions — you can restore to "1 hour before the migration ran."
+
+This does **not** protect against losing the VPS itself. For that, change the replica `type: file` in `litestream.yml` to `type: s3` and set the relevant env vars (any S3-compatible bucket works — Cloudflare R2, Backblaze B2, AWS S3, MinIO).
+
+### Restore drill
+
+1. **Stop the app** so it isn't writing to the DB during restore:
+   ```bash
+   docker compose stop qav
+   ```
+2. **List what snapshots litestream has**:
+   ```bash
+   docker compose exec litestream litestream snapshots /data/prod.db
+   ```
+3. **Restore the latest snapshot to a scratch location** so you can inspect before overwriting prod:
+   ```bash
+   docker compose exec litestream litestream restore -o /tmp/restored.db /data/prod.db
+   docker compose exec litestream sqlite3 /tmp/restored.db ".schema"
+   ```
+4. **If it looks good, restore in place** (back up the current DB first, just in case):
+   ```bash
+   docker compose run --rm litestream sh -c 'cp /data/prod.db /data/prod.db.pre-restore && litestream restore -o /data/prod.db /data/prod.db'
+   ```
+5. **Start the app**:
+   ```bash
+   docker compose start qav
+   ```
+
+### Manual fallback
+
+If you need an ad-hoc backup without involving litestream:
+
+```bash
+docker compose exec qav sqlite3 /app/data/prod.db ".backup '/app/data/manual-$(date +%Y%m%d-%H%M%S).db'"
+```
+
+A plain `cp` may race with WAL writes — always use the `sqlite3 .backup` form.
+
+### Uploads (poster images)
+
+Litestream only covers the SQLite DB. For `/app/uploads` (poster files), the simplest setup is a daily `rclone copy` to the same off-site bucket as litestream's S3 destination. Cron from the host or a sidecar with `restic`/`rclone` both work — not yet automated in the repo; see roadmap item **O1** for status.
 
 ## Operational toggles cheat-sheet
 
