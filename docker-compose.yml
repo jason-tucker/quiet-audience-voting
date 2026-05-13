@@ -22,6 +22,20 @@ services:
     labels:
       com.centurylinklabs.watchtower.enable: "true"
 
+  # Continuous SQLite backup via Litestream. Tails the WAL on /app/data/prod.db
+  # and writes incremental WAL segments + hourly snapshots to qav_backups. See
+  # litestream.yml for retention / off-VPS S3/R2 swap. Restore drill is
+  # documented in wiki/Deployment-and-Operations.md.
+  litestream:
+    image: litestream/litestream:0.3.13
+    container_name: qav-litestream
+    restart: unless-stopped
+    volumes:
+      - qav_data:/data:ro
+      - qav_backups:/backups
+      - ./litestream.yml:/etc/litestream.yml:ro
+    command: replicate
+
   watchtower:
     image: containrrr/watchtower
     container_name: qav-watchtower
@@ -42,3 +56,4 @@ services:
 volumes:
   qav_data:
   qav_uploads:
+  qav_backups:

@@ -14,6 +14,10 @@ When you ship a release, move the contents of `[DEV]` under a new `[X.Y.Z] — Y
 
 ## [DEV]
 
+### Added
+
+- **Litestream sidecar for continuous SQLite backup.** The shipped `docker-compose.yml` now runs a `litestream/litestream:0.3.13` container that tails `/app/data/prod.db`'s WAL and writes incremental segments + hourly snapshots to a new `qav_backups` volume. Default retention 7 days; the file replica defends against `docker compose down -v` and volume corruption, and a one-line edit of `litestream.yml` swaps to an S3-compatible bucket (Cloudflare R2, B2, S3) for off-VPS protection. Restore drill is documented in [Deployment & Operations → Backups](https://github.com/jason-tucker/quiet-audience-voting/wiki/Deployment-and-Operations#backups). Closes #22 (roadmap item O1).
+
 ### Fixed
 
 - **ops:** `:dev` image was crash-looping at startup with `Cannot find module 'effect'`. Prisma 6.x's `@prisma/config` requires `effect`, `c12`, `deepmerge-ts`, and `empathic` as runtime peers, and the runner stage of the previous Dockerfile only `COPY`'d `node_modules/prisma` from the builder, leaving those top-level packages behind. The runner stage now does a clean `npm install prisma@^6.1.0 --omit=dev` so transitive deps are resolved. Landed on `main` in #6, ported to `dev` in #8. Incident write-up: #7.
