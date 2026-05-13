@@ -22,7 +22,7 @@ Both authenticate to GHCR with `${{ secrets.GITHUB_TOKEN }}` and use the Actions
 The bundled `docker-compose.yml` pulls the latest image from GHCR and runs two services:
 
 - **`qav`** — the app. Exposes port `3000`. Mounts `/app/data` (database) and `/app/uploads` (posters) as named volumes. Reads env from the compose file (or an `.env`).
-- **Watchtower** — polls GHCR every `WATCHTOWER_POLL_INTERVAL=300` seconds (5 min) and rolls forward when a new image is available.
+- **Watchtower** — polls GHCR every `WATCHTOWER_POLL_INTERVAL=300` seconds (5 min) and rolls forward when a new image is available. Pin `DOCKER_API_VERSION` on this service (current value: `1.45`) — see [Troubleshooting & Incidents](Troubleshooting-and-Incidents) for the failure mode if you forget.
 
 ## Environment variables
 
