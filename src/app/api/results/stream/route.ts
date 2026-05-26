@@ -5,9 +5,13 @@ export const runtime = "nodejs";
 
 export async function GET() {
   const encoder = new TextEncoder();
+  // Captured from `start` so `cancel` (which receives the cancel reason, NOT
+  // the controller) can still hand the right reference to removeClient.
+  let streamController: ReadableStreamDefaultController<Uint8Array> | null = null;
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      streamController = controller;
       try {
         addClient(controller);
       } catch (err) {
@@ -24,8 +28,8 @@ export async function GET() {
         // The shared heartbeat will retry; no point failing the stream.
       }
     },
-    cancel(controller) {
-      removeClient(controller);
+    cancel() {
+      if (streamController) removeClient(streamController);
     },
   });
 

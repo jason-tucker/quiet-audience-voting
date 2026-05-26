@@ -5,6 +5,7 @@ import { isVotingOpen } from "@/lib/settings";
 import { getClientIp } from "@/lib/device";
 import { broadcastUpdate, getCurrentResults } from "@/lib/sse";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { logger } from "@/server/logger";
 import type { DeviceInfo } from "@/types";
 
 const MAX_BODY_BYTES = 16 * 1024;
@@ -120,7 +121,9 @@ export async function POST(request: NextRequest) {
     timestamp: created.timestamp.toISOString(),
   })
     .then((payload) => broadcastUpdate(payload))
-    .catch(() => {});
+    .catch((err) => {
+      logger.warn({ err, voteId: created.id }, "broadcast after vote failed");
+    });
 
   return NextResponse.json({ success: true });
 }
