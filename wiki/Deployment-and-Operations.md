@@ -22,7 +22,8 @@ Both authenticate to GHCR with `${{ secrets.GITHUB_TOKEN }}` and use the Actions
 The bundled `docker-compose.yml` pulls the latest image from GHCR and runs two services:
 
 - **`qav`** — the app. Exposes port `3000`. Mounts `/app/data` (database) and `/app/uploads` (posters) as named volumes. Reads env from the compose file (or an `.env`).
-- **Watchtower** — polls GHCR every `WATCHTOWER_POLL_INTERVAL=300` seconds (5 min) and rolls forward when a new image is available. Pin `DOCKER_API_VERSION` on this service (current value: `1.45`) — see [Troubleshooting & Incidents](Troubleshooting-and-Incidents) for the failure mode if you forget.
+- **`litestream`** — continuous SQLite backup sidecar (see [Backups](#backups) below).
+- **Watchtower** — polls GHCR every `WATCHTOWER_POLL_INTERVAL=300` seconds (5 min) and rolls forward when a new image is available. Authenticates to GHCR via the container's `REPO_USER`/`REPO_PASS` env vars, set from `GHCR_USER`/`GHCR_TOKEN` in `.env` (needed if the package is private). Pin `DOCKER_API_VERSION` on this service (current value: `1.45`) — see [Troubleshooting & Incidents](Troubleshooting-and-Incidents) for the failure mode if you forget.
 
 ## Environment variables
 
@@ -56,6 +57,7 @@ Migrations live in `prisma/migrations/` and are applied at container start (`pri
 1. `20260509060959_init` — initial schema (`Film`, `Vote`, `Setting`).
 2. `20260509065820_drop_display_order` — remove unused column.
 3. `20260509065857_add_trusted_devices_and_snapshots` — add `TrustedDeviceProfile` and `VoteSnapshot`.
+4. `20260513000000_add_auth_event` — add `AuthEvent` (admin login audit log).
 
 The seed script (`prisma/seed.ts`) inserts three default `Setting` rows: `votingOpen=false`, `eventName=Film Festival`, `adminPasswordHash=` (empty). Run it locally with `npm run prisma:seed` after the first `prisma migrate dev`. In production, the password is set from `INITIAL_ADMIN_PASSWORD` on first successful login.
 

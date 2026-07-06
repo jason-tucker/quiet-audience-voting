@@ -34,6 +34,7 @@ When you ship a release, move the contents of `[DEV]` under a new `[X.Y.Z] — Y
 
 - Added a [Troubleshooting & Incidents](wiki/Troubleshooting-and-Incidents.md) wiki page that captures both 2026-05-12 incidents with symptom / root cause / fix / detection commands, plus a general triage checklist for on-call.
 - README gained a Troubleshooting pointer to the wiki page.
+- Refreshed the wiki and `docs/` for everything shipped since `v0.1.0`: moved O1/O3/O5/Q3/Q4/Q5/U5/U1 from Roadmap's pending tables into a new Done section with PR/issue links; documented bulk CSV import, the admin-login audit tab + votes/auth export buttons, and presentation mode in the Admin Guide; added the `AuthEvent` model and the poster-upload/health-check modules to Architecture; corrected the `/api/health` migrations check description (it reads the `_prisma_migrations` ledger, not `Setting` rows) and the `FilmInputSchema` character bounds in API Reference; fixed the stale `## [Unreleased]` changelog heading reference (should be `## [DEV]`) in both `docs/CONTRIBUTING.md` and the Contributing wiki page; filled in `docs/ARCHITECTURE.md`'s long-standing TODO placeholders, including a note that the `AppError`/`handleApiError`/`parseJsonBody` pattern isn't yet adopted by most existing routes.
 
 ## [0.1.0] — 2026-05-12
 

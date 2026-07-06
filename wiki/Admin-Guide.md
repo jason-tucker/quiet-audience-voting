@@ -24,7 +24,8 @@ The landing page. Shows:
 
 CRUD for films. Each film has a `name`, `school`, and `posterUrl`.
 
-- Posters can be uploaded via `POST /api/upload-poster` (multipart) and the returned URL pasted in.
+- Posters can be uploaded via `POST /api/upload-poster` (multipart) and the returned URL pasted in. Uploads are automatically resized to WebP (max 800px wide) and cached forever under a content-hashed filename.
+- **Bulk import…** button opens a CSV paste/upload dialog (`name,school,posterUrl` columns, header optional). Previews which rows are ready vs. invalid (with reasons), then imports everything in one transactional call (`POST /api/admin/films/bulk`, capped at 500 rows) — either all rows land or none do.
 - Deletes are hard. Vote rows reference `filmId` but are not FK-cascaded — clear votes via **Sessions** before deleting a film if you want a clean reset.
 
 ## `/admin/settings` — Settings
@@ -62,15 +63,16 @@ A trusted match is either an exact fingerprint hit, or a fuzzy match: same platf
 
 ## `/admin/audit` — Audit log
 
-Full chronological vote list via `GET /api/admin/votes` (paged, default 50, max 500). Each row exposes the raw device JSON (`rawDeviceJson`) for forensic review.
+A tab toggle switches between two views:
 
-Useful for after-the-fact disputes: filter by `filmId`, scroll through the timeline, inspect the device profile that cast each vote.
+- **Votes** — full chronological vote list via `GET /api/admin/votes` (paged, default 50, max 500). Each row exposes the raw device JSON (`rawDeviceJson`) for forensic review. Filter by `filmId`, scroll through the timeline, inspect the device profile that cast each vote. **Export CSV** / **Export JSON** buttons next to pagination stream the whole dataset (not just the current page) via `GET /api/admin/votes/export`.
+- **Admin logins** — every login attempt (success and fail) via `GET /api/admin/auth-events`, with IP, user-agent, outcome, and a failure reason (`bad_password`, `rate_limited`, `bad_origin`, `server_misconfigured`). Paginated and filterable by outcome. Retained to the last 1000 rows.
 
 ## Running an event — typical flow
 
 1. Log in. Set `eventName`. Make sure `votingOpen` is **off**.
-2. Add or update films in **Films**.
+2. Add or update films in **Films** (one-by-one, or **Bulk import…** a CSV for a large slate).
 3. Designate any known tablets in **Devices** (whitelist their fingerprints so high vote counts don't trip suspicious detection).
 4. When the screening ends and discussion starts: flip `votingOpen` **on** in **Dashboard** or **Settings**.
-5. Open the **Results** page on the projector — it auto-connects via SSE.
+5. Open the **Results** page on the projector — it auto-connects via SSE. For the awards moment, `/results/presentation` gives a fullscreen leaderboard with a manual reveal mode (Space/→ to reveal the next rank, `A` to reveal all, `R` to resume live, `F` for fullscreen).
 6. After voting closes, flip `votingOpen` off and **Reset** in **Sessions** to archive the snapshot.

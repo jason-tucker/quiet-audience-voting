@@ -58,5 +58,5 @@ re-run `npx husky init` and verify `.husky/pre-commit` contains
 
 - Branch off `dev`. Open PRs against `dev`. `main` is promoted from `dev`
   after the staging environment looks good.
-- Keep PRs scoped. Update `CHANGELOG.md` under `## [Unreleased]`.
+- Keep PRs scoped. Update `CHANGELOG.md` under the rolling `## [DEV]` section (see the versioning conventions at the top of `CHANGELOG.md` — this repo uses `[DEV]` instead of `[Unreleased]`).
 - Run `npm run lint && npm test` before pushing.

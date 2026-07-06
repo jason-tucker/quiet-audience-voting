@@ -7,7 +7,7 @@ Built originally for **QCFFPOLL.COM** — designed to be re-deployable for any s
 ## Features
 
 - **Voting interface** — full-screen poster grid optimized for iPad. Tap a poster, confirm with the vote button (or tap again), reset after 3 seconds.
-- **Live results** — `/results` page updates in real-time via Server-Sent Events. No refresh needed.
+- **Live results** — `/results` page updates in real-time via Server-Sent Events. No refresh needed. `/results/presentation` is a fullscreen, projector-friendly variant with a manual reveal mode for the awards moment.
 - **Admin dashboard** — password protected. Manage films, toggle voting open/closed, view vote timeline, audit log, device list, and flagged suspicious clusters.
 - **Device tracking** — captures all browser-exposed device info on every vote (user agent, screen, timezone, language, platform, etc.) for legitimate audit logging.
 - **Self-contained** — single Docker container, single SQLite file, no external services required.
@@ -64,6 +64,10 @@ the checklist for adding new routes/pages. Deeper structure lives in
 | `JWT_SECRET`             | Random 32+ char string for signing admin JWTs.                                         |
 | `INITIAL_ADMIN_PASSWORD` | Used for first admin login until you change it via the settings page.                  |
 | `NEXT_PUBLIC_APP_URL`    | Public URL of the deployed site.                                                       |
+| `TRUSTED_PROXY`          | Set `true` only behind a proxy that rewrites `x-forwarded-for`/`x-real-ip` (e.g. Cloudflare Tunnel). Otherwise audit IPs are recorded as `"unknown"`. |
+| `SECURE_COOKIE`          | Set `false` to allow the admin cookie over plain HTTP. Don't use in production over TLS. Default: `Secure` in production. |
+
+See the [Deployment & Operations wiki page](https://github.com/Jason-Tucker/quiet-audience-voting/wiki/Deployment-and-Operations) for the full list, including operational vars like `LOG_LEVEL` and `PORT`.
 
 ## Deployment
 
