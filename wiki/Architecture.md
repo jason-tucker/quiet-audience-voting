@@ -67,6 +67,10 @@ Key-value store: `key` (PK), `value`. Used for `votingOpen`, `votingOpenedAt`, `
 
 `id`, `label`, `createdAt`, `totalVotes`, `uniqueDevices`, `filmResults` (JSON: `[{ filmId, filmName, school, posterUrl, count, percentage }]`). Captured when an admin resets a session.
 
+### `AuthEvent`
+
+`id`, `timestamp`, `outcome` (`success`/`fail`), `ipAddress`, `userAgent`, `reason` (`bad_password`/`rate_limited`/`bad_origin`/`server_misconfigured`, null on success). One row per admin login attempt. Pruned to the last 1000 rows on write. Indexed on `timestamp`, `outcome`. Surfaced in `/admin/audit`'s "Admin logins" tab.
+
 ## Errors
 
 All expected failures throw a typed subclass from `src/lib/errors.ts`:
@@ -83,6 +87,8 @@ All expected failures throw a typed subclass from `src/lib/errors.ts`:
 
 `handleApiError` formats the response as `{ error: string, code: string }` and adds `Retry-After` when applicable.
 
+This is the required pattern for new routes (see `CLAUDE.md`'s checklist). Several existing routes predate it — e.g. `/api/vote`, `/api/admin/films`, `/api/admin/films/[id]`, and `/api/login` hand-roll their own validation and `NextResponse.json({ error }, { status })` calls instead of going through `AppError`/`handleApiError`/`parseJsonBody`. `POST /api/admin/films/bulk` is the one route that does use a Zod schema (`FilmBulkInputSchema`) directly, though it still doesn't call `handleApiError`. Don't assume every route matches the checklist — check the actual handler.
+
 ## Cross-cutting modules
 
 - **Rate limiting** — `src/lib/rateLimit.ts`. In-memory token bucket, per process. Used on `/api/vote` (per fingerprint) and `/api/login` (per IP).
@@ -90,4 +96,6 @@ All expected failures throw a typed subclass from `src/lib/errors.ts`:
 - **Trusted devices** — `src/lib/trustedDevices.ts`. Matches by fingerprint or by screen + browser family within tolerance.
 - **Showcase mode** — `src/lib/showcase.ts`. Simulates 6 iPad-like devices voting on an organic cadence for demos.
 - **Settings** — `src/lib/settings.ts`. Reads/writes the `Setting` table.
+- **Poster uploads** — `src/lib/uploadStorage.ts`. Resizes non-GIF images to WebP (`sharp`, max 800px wide, quality 85) and writes them under a SHA-256 content-hashed filename (re-uploading an identical poster is idempotent); animated GIFs pass through unresized. `src/app/uploads/[...path]/route.ts` serves the files from the runtime volume with a one-year immutable `Cache-Control`.
+- **Health check** — `src/app/api/health/route.ts`. Checks DB reachability (`SELECT 1`), the `_prisma_migrations` ledger (not app tables, which legitimately start empty), uploads-dir writability, and disk free % — 503 if any check fails. Distinct from the lightweight `GET /api/status` the voter UI polls.
 - **Logger** — `src/server/logger.ts` (Pino). Use `logger`, never `console.*`.

@@ -53,7 +53,7 @@ Operational health probe — used by uptime monitors, Watchtower, and on-call wh
 - **Status** — `200` when every check passes, `503` on any failure. Shape stays identical in both directions so a probe can grep `"ok":false` without branching on status.
 - **What it checks**
   - `database` — `SELECT 1` round-trip via Prisma.
-  - `migrations` — at least one row in `Setting` (proxy: migrations + seed both ran).
+  - `migrations` — at least one applied row in the `_prisma_migrations` ledger (not inferred from app tables like `Setting`, since those start empty on a fresh deploy and are only populated lazily by application code).
   - `uploads_writable` — `/app/uploads` writable.
   - `disk` — > 5% free on the uploads volume (soft check; reports a warning if `statfs` isn't available rather than failing).
 
@@ -63,6 +63,15 @@ Multipart image upload for posters. Admin-only — bypasses middleware (which st
 
 - **Auth** — JWT from cookie (manual check).
 - **Errors** — `401` unauthenticated, `413` too large, `400` not an image.
+- **Effects** — non-GIF images are resized to WebP (`sharp`, max width 800px, quality 85) and written under a content-hashed (SHA-256) filename; animated GIFs pass through unresized. Returns `{ url, bytesIn, bytesOut }`.
+
+### `GET /uploads/[...path]`
+
+Serves poster files saved by `POST /api/upload-poster` from the `/app/uploads` volume (not `/public`, since that's baked into the build and can't see runtime writes).
+
+- **Auth** — none.
+- **Headers** — `Cache-Control: public, max-age=31536000, immutable` (safe because filenames are content-addressed).
+- **Errors** — `400` on path-traversal attempts, `404` if the file doesn't exist.
 
 ### `GET /api/results`
 
@@ -94,7 +103,7 @@ All require a valid `qav_admin` JWT. Middleware enforces this; the response on f
 
 Create a film.
 
-- **Body** — `FilmInputSchema`: `{ name, school, posterUrl }` (all 1–2000 chars).
+- **Body** — `FilmInputSchema`: `{ name, school, posterUrl }` — `name`/`school` 1–200 chars, `posterUrl` 1–2000 chars.
 
 ### `POST /api/admin/films/bulk`
 
@@ -108,7 +117,7 @@ Create up to 500 films in one transactional call.
 
 Patch a film.
 
-- **Body** — `FilmPatchSchema` (`FilmInputSchema.partial()`).
+- **Body** — same shape as `FilmInputSchema` but all fields optional (`FilmPatchSchema` = `FilmInputSchema.partial()` is exported from the schemas module; the route handler itself accepts any subset of `name`/`school`/`posterUrl` without re-validating length bounds).
 - **Errors** — `404` if id unknown.
 
 ### `DELETE /api/admin/films/[id]`

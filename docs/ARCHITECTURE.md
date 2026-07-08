@@ -6,10 +6,22 @@ on purpose — link out to code rather than paraphrasing it.
 
 ## Overview
 
-> TODO (Phase 2, U10): write the 3-paragraph elevator pitch — what the app
-> does, who uses each surface (voter / results viewer / admin), and the
-> deployment shape (single container, single SQLite file, SSE for live
-> updates).
+Quiet Audience Voting is a single-container Next.js app for running silent,
+fingerprint-deduplicated audience voting at film festivals. Three surfaces
+share one deployment: **voters** open `/` on a kiosk iPad (or any browser),
+tap a poster, and get a 3-second thank-you before the screen resets for the
+next person; **results viewers** watch `/results` (or the projector-friendly
+`/results/presentation`) update live over Server-Sent Events with no refresh;
+**admins** manage films, settings, sessions, trusted devices, and the audit
+log from a JWT-gated `/admin` area.
+
+The deployment shape is deliberately minimal: one Docker container, one
+SQLite file (via Prisma), no external services required. A Litestream sidecar
+tails the SQLite WAL for continuous backup. State lives in four buckets:
+`Film`/`Vote` (the poll itself), `Setting` (voting open/closed, event name,
+showcase mode, admin password hash), `TrustedDeviceProfile` (whitelisted
+kiosk fingerprints), and `VoteSnapshot`/`AuthEvent` (session history and
+login audit trail).
 
 ## Directory layout
 
@@ -47,33 +59,70 @@ docs/               # ARCHITECTURE / CONTRIBUTING / DECISIONS
 
 ### Voter (`POST /api/vote`)
 
-> TODO (Phase 2, U10): document the path through middleware → route handler
-> → `parseJsonBody(VoteInputSchema)` → vote service → Prisma insert → SSE
-> broadcast → JSON 200 response. Note that voting-closed returns 403 via
-> `ForbiddenError` and unknown films return 404 via `NotFoundError`.
+The handler checks `isVotingOpen()` (403 if closed), enforces a 16 KB body
+cap, parses the JSON body itself (no schema-level validation yet — see the
+caveat below), applies a per-fingerprint token-bucket rate limit (429 with
+`Retry-After` on breach), 404s on an unknown `filmId`, inserts the `Vote` row
+with the full device telemetry plus `rawDeviceJson`, and fires-and-forgets an
+SSE broadcast of the updated snapshot before returning `{ success: true }`.
 
-### Admin (`POST /api/films`, `PATCH /api/films/[id]`, etc.)
+### Admin (`POST /api/admin/films`, `PUT /api/admin/films/[id]`, etc.)
 
-> TODO (Phase 2, U10): document middleware JWT verification → route handler
-> → schema validation → service mutation → response. Errors flow through
-> `handleApiError`.
+`src/middleware.ts` gates every `/admin/**` page and `/api/admin/**` route
+behind the `qav_admin` JWT cookie (401 for API routes, redirect to `/login`
+for pages) before the route handler runs. From there, handlers vary in how
+strictly they validate: `POST /api/admin/films/bulk` parses the body with
+`FilmBulkInputSchema` (Zod) and wraps the inserts in `prisma.$transaction`;
+the single-film create/update/delete routes (`/api/admin/films`,
+`/api/admin/films/[id]`) do their own ad-hoc type checks against
+`request.json()` rather than a Zod schema.
+
+**Caveat on the "thin handler → Zod → service → `AppError`/`handleApiError`"
+pattern described in `CLAUDE.md`:** that is the required pattern for new
+routes, but it is not yet universally adopted. `src/lib/errors.ts`
+(`AppError` and subclasses) and `src/server/handleApiError.ts` exist and are
+unit-tested, but as of this writing no route under `src/app/api/**` actually
+calls `handleApiError` — every route catches its own errors and hand-builds
+a `NextResponse.json({ error, ... }, { status })`. Similarly,
+`src/server/parseJsonBody.ts` is not yet wired into any route. Treat the
+checklist in `CLAUDE.md` as the target for new code, not a description of
+every existing handler.
 
 ### SSE (`GET /api/results/stream`)
 
-> TODO (Phase 2, U10): document the SSE handshake, the `sse.ts` broadcast
-> hub, heartbeat cadence, and how `/api/vote` publishes updates.
+`src/lib/sse.ts` maintains an in-memory set of connected clients (capped at
+200 per process). On connect it sends the current snapshot immediately, then
+a heartbeat snapshot every 3000 ms regardless of activity. `POST /api/vote`
+calls `broadcastUpdate()` after every successful insert so all connected
+clients get the new tally (plus a `lastVote` payload) without waiting for the
+next heartbeat. The client (`/results`, `/results/presentation`) reconnects
+with exponential backoff on `error` and treats a stream as stale if no
+message has arrived in 5 s.
 
 ## Auth model
 
-> TODO (Phase 2, U10): single admin password stored hashed in the `Settings`
-> row, exchanged via `POST /api/login` for a `jose`-signed JWT cookie, gated
-> by `src/middleware.ts` on the `/admin` segment.
+A single admin password is stored hashed (bcrypt) in the `Setting` table
+under the `adminPasswordHash` key. On first login (empty hash), the password
+submitted is compared against `INITIAL_ADMIN_PASSWORD` from the environment
+(the literal `changeme` is rejected) and, if it matches, hashed and persisted.
+`POST /api/login` also checks that the request's `Origin` matches the host
+(or `NEXT_PUBLIC_APP_URL`), rate-limits by IP, and records every attempt —
+success or failure, with a `reason` code on failure — as an `AuthEvent` row.
+On success it signs an HS256 JWT (`jose`, 1 h expiry) and sets it as the
+`qav_admin` cookie (`HttpOnly`, `SameSite=Strict`, `Secure` in production
+unless `SECURE_COOKIE=false`). `src/middleware.ts` verifies that cookie on
+every `/admin/**` and `/api/admin/**` request.
 
 ## Database
 
-> TODO (Phase 2, U10): SQLite via Prisma. Three models — `Film`, `Vote`,
-> `Settings`. Vote rows store both individual columns and `rawDeviceJson`
-> for full audit fidelity. Indexes on `Vote.filmId` and `Vote.timestamp`.
+SQLite via Prisma (`prisma/schema.prisma`). Six models: `Film`, `Vote`,
+`Setting`, `TrustedDeviceProfile`, `VoteSnapshot`, and `AuthEvent`. `Vote`
+rows store both individually-indexed columns (`filmId`, `timestamp`,
+`deviceFingerprint`, plus optional telemetry columns) and the full
+`rawDeviceJson` blob for audit fidelity. Indexes: `Vote.filmId`,
+`Vote.timestamp`, `Vote.deviceFingerprint`, `AuthEvent.timestamp`,
+`AuthEvent.outcome`. See [`wiki/Architecture.md`](../wiki/Architecture.md) for
+a per-model field breakdown.
 
 ## Tests
 
@@ -82,5 +131,11 @@ docs/               # ARCHITECTURE / CONTRIBUTING / DECISIONS
 - End-to-end: **Playwright**, in `e2e/*.spec.ts`. Configured for desktop
   Chrome and iPad Pro 11 viewports.
 
-> TODO (Phase 2, U10): document fixtures, the test DB strategy, and how to
-> run a focused subset.
+Coverage today is thin: the only unit spec is `src/lib/__tests__/errors.test.ts`
+(covers the `AppError` hierarchy and `handleApiError`), and the only e2e spec
+is `e2e/smoke.spec.ts` (asserts `/api/status` and `/api/health` respond with
+the expected shape). There's no shared fixture/test-DB setup yet — this is
+tracked as roadmap **O8** (full voter/admin flow coverage in Playwright, run
+on PRs). CI's `verify` job (`.github/workflows/deploy-main.yml` /
+`deploy-dev.yml`) runs `npm run lint`, `npm run build`, and `npm test` before
+every image push (roadmap **O5**, shipped).

@@ -87,7 +87,7 @@ Before pushing: `npm run lint && npm test && npm run format:check`. The build is
 
 - Branch from `dev`. Open PRs against `dev`. `main` is the promoted line — merges to `main` ship to production via the `deploy-main.yml` workflow.
 - Keep PRs scoped. One concern per branch.
-- Update `CHANGELOG.md` under `## [Unreleased]` as part of the PR.
+- Update `CHANGELOG.md` under the rolling `## [DEV]` section (not `[Unreleased]` — see the versioning conventions at the top of `CHANGELOG.md`) as part of the PR.
 - Don't squash-merge if the branch is mid-stack-of-PRs — preserve the history so promotions work.
 - Don't push directly to `main`. Don't skip hooks (`--no-verify`).
 
